@@ -104,11 +104,27 @@ const RegisterScreen = () => {
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>Enter OTP</Text>
-            <TextInput style={styles.textInput} placeholder="Enter OTP" keyboardType="numeric" value={otp} onChangeText={setOtp} />
+            <Text style={styles.modalHeader}>Inserisci il Codice OTP</Text>
+            <Text style={styles.otpInfo}>
+              Abbiamo inviato un codice di verifica al tuo indirizzo email.
+              Controlla la tua casella di posta e inserisci il codice di 6 cifre 
+              qui sotto per completare la registrazione.
+            </Text>
+            <TextInput 
+              style={styles.textInput} 
+              placeholder="Inserisci OTP" 
+              keyboardType="numeric" 
+              value={otp} 
+              onChangeText={setOtp}
+              maxLength={6}
+            />
             <View style={styles.buttonContainer}>
-              <Button mode="outlined" onPress={() => setModalVisible(false)} style={styles.backButton}>Back</Button>
-              <Button mode="contained" onPress={verifyOtp} style={styles.buttonVerify}>Verify</Button>
+              <Button mode="outlined" onPress={() => setModalVisible(false)} style={styles.backButton}>
+                Indietro
+              </Button>
+              <Button mode="contained" onPress={verifyOtp} style={styles.buttonVerify}>
+                Verifica
+              </Button>
             </View>
           </View>
         </View>
@@ -194,6 +210,14 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 6,
   },
+  otpInfo: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+    paddingHorizontal: 10,
+  },
   modalHeader: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -220,6 +244,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: '#ccc',
     borderRadius: 8,
+    color: '#333',
   },
   buttonVerify: {
     flex: 1,

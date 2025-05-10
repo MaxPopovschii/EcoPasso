@@ -1,11 +1,14 @@
+import SERVER from '@/constants/Api';
+import { useAuthContext } from '@/utils/authContext';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Button, Alert } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import { Alert, Button, StyleSheet, Text, TextInput, View } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 
 export const TransportComponent = () => {
-  const [startLocation, setStartLocation] = useState(null);
-  const [endLocation, setEndLocation] = useState(null);
+  const {user} = useAuthContext();
+  const [startLocation, setStartLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [endLocation, setEndLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [routeType, setRouteType] = useState('one-way');
   
   // Stati per il dropdown-picker
@@ -17,19 +20,41 @@ export const TransportComponent = () => {
     { label: 'Camminare', value: 'walk' },
     { label: 'Trasporto Pubblico', value: 'public' },
   ]);
+  const [passengerCount, setPassengerCount] = useState<number>(1);
+  const [fuelType, setFuelType] = useState<string>('gasoline');
+  const [openFuel, setOpenFuel] = useState<boolean>(false);
+  const [fuelItems] = useState([
+    { label: 'Benzina', value: 'gasoline' },
+    { label: 'Diesel', value: 'diesel' },
+    { label: 'GPL', value: 'lpg' },
+    { label: 'Elettrico', value: 'electric' },
+  ]);
 
+  const calculateDistance = (start: any, end: any): number => {
+    const R = 6371; // Raggio della Terra in km
+    const dLat = (end.latitude - start.latitude) * Math.PI / 180;
+    const dLon = (end.longitude - start.longitude) * Math.PI / 180;
+    
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(start.latitude * Math.PI / 180) * Math.cos(end.latitude * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return Number((R * c).toFixed(2)); // Distanza in km
+  };
+  
   const handleMapPress = (e) => {
-    const { coordinate } = e.nativeEvent;
     if (!startLocation) {
-      setStartLocation(coordinate);
+      setStartLocation(e.nativeEvent.coordinate);
     } else if (!endLocation) {
-      setEndLocation(coordinate);
+      setEndLocation(e.nativeEvent.coordinate);
     } else {
       Alert.alert("Errore", "Hai già selezionato sia il punto di partenza che di arrivo.");
     }
   };
 
-  const handleRouteTypeChange = (type) => {
+  const handleRouteTypeChange = (type: 'one-way' | 'round-trip') => {
     setRouteType(type);
   };
 
@@ -39,113 +64,238 @@ export const TransportComponent = () => {
     }
     return [];
   };
+  const calculateAndSaveRoute = async () => {
+    if (!startLocation || !endLocation) {
+      Alert.alert("Errore", "Seleziona prima i punti di partenza e arrivo");
+      return;
+    }
+
+    try {
+      const activityData = {
+        user: {
+          email: user?.email  // Aggiungiamo l'email dell'utente
+        },
+        activityType: {
+          id: 3  // ID per le attività di trasporto
+        },
+        insertionDate: new Date().toISOString(),
+        notes: `Viaggio da ${startLocation.latitude},${startLocation.longitude} a ${endLocation.latitude},${endLocation.longitude}`
+      };
+
+      // Chiamata per creare l'Activity
+      const activityResponse = await fetch(`${SERVER}/api/activities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(activityData),
+      });
+
+      if (!activityResponse.ok) {
+        throw new Error('Errore nella creazione dell\'attività');
+      }
+
+      const activityResult = await activityResponse.json();
+
+      const transportActivityData = {
+        activity: {
+          id: activityResult.id
+        },
+        transportMode: transportType,
+        departurePoint: `${startLocation.latitude},${startLocation.longitude}`,
+        arrivalPoint: `${endLocation.latitude},${endLocation.longitude}`,
+        distance: calculateDistance(startLocation, endLocation),
+        travelDate: new Date().toISOString(),
+        passengerCount: passengerCount,
+        fuelType: transportType === 'car' ? fuelType : null
+      };
+
+      const response = await fetch(`${SERVER}/api/transport-activities/new`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transportActivityData),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        Alert.alert("Successo", "Percorso registrato con successo!");
+        setStartLocation(null);
+        setEndLocation(null);
+      } else {
+        throw new Error(data.message || 'Errore nel salvataggio del percorso');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
+      Alert.alert("Errore", "Impossibile salvare il percorso: " + errorMessage);
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Sola Andata"
-          onPress={() => handleRouteTypeChange('one-way')}
-          color={routeType === 'one-way' ? '#2196F3' : 'gray'}
-        />
-        <Button
-          title="Andata/Ritorno"
-          onPress={() => handleRouteTypeChange('round-trip')}
-          color={routeType === 'round-trip' ? '#2196F3' : 'gray'}
-        />
+      {/* Top Section */}
+      <View style={styles.topSection}>
+        <View style={styles.buttonContainer}>
+          <Button
+            title="Sola Andata"
+            onPress={() => handleRouteTypeChange('one-way')}
+            color={routeType === 'one-way' ? '#2196F3' : 'gray'}
+          />
+          <Button
+            title="Andata/Ritorno"
+            onPress={() => handleRouteTypeChange('round-trip')}
+            color={routeType === 'round-trip' ? '#2196F3' : 'gray'}
+          />
+        </View>
+
+        <MapView
+          style={styles.map}
+          onPress={handleMapPress}
+        >
+          {startLocation && (
+            <Marker coordinate={startLocation} title="Punto A (Partenza)" />
+          )}
+          {endLocation && (
+            <Marker coordinate={endLocation} title="Punto B (Arrivo)" />
+          )}
+          {startLocation && endLocation && (
+            <Polyline
+              coordinates={getRouteCoordinates()}
+              strokeColor="#000"
+              strokeWidth={3}
+            />
+          )}
+        </MapView>
       </View>
 
-      <MapView
-        style={styles.map}
-        onPress={handleMapPress}
-      >
-        {startLocation && (
-          <Marker coordinate={startLocation} title="Punto A (Partenza)" />
-        )}
+      {/* Bottom Section */}
+      <View style={styles.bottomSection}>
+        <View style={styles.dropdownContainer}>
+          <Text style={styles.pickerLabel}>Scegli il Tipo di Trasporto:</Text>
+          <DropDownPicker
+            open={open}
+            value={transportType}
+            items={transportItems}
+            setOpen={setOpen}
+            setValue={setTransportType}
+            setItems={setTransportItems}
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownList}
+            placeholder="Seleziona un tipo di trasporto"
+            listMode="MODAL" // Changed to modal mode
+            modalProps={{
+              animationType: "fade"
+            }}
+            modalContentContainerStyle={styles.modalContent}
+          />
+        </View>
 
-        {endLocation && (
-          <Marker coordinate={endLocation} title="Punto B (Arrivo)" />
+        {transportType === 'car' && (
+          <View style={styles.additionalFields}>
+            <Text style={styles.fieldLabel}>Tipo di carburante:</Text>
+            <DropDownPicker
+              open={openFuel}
+              value={fuelType}
+              items={fuelItems}
+              setOpen={setOpenFuel}
+              setValue={setFuelType}
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownList}
+              listMode="MODAL" // Changed to modal mode
+              modalProps={{
+                animationType: "fade"
+              }}
+              modalContentContainerStyle={styles.modalContent}
+            />
+            
+            <Text style={styles.fieldLabel}>Numero passeggeri:</Text>
+            <TextInput
+              style={styles.input}
+              value={passengerCount.toString()}
+              onChangeText={(text) => setPassengerCount(Number(text) || 1)}
+              keyboardType="numeric"
+              placeholder="Numero passeggeri"
+            />
+          </View>
         )}
 
         {startLocation && endLocation && (
-          <Polyline
-            coordinates={getRouteCoordinates()}
-            strokeColor="#000"
-            strokeWidth={3}
+          <Button
+            title="Salva Percorso"
+            onPress={calculateAndSaveRoute}
+            color="#4CAF50"
           />
         )}
-      </MapView>
-
-      <View style={styles.dropdownContainer}>
-        <Text style={styles.pickerLabel}>Scegli il Tipo di Trasporto:</Text>
-        <DropDownPicker
-          open={open}
-          value={transportType}
-          items={transportItems}
-          setOpen={setOpen}
-          setValue={setTransportType}
-          setItems={setTransportItems}
-          style={styles.dropdown}
-          dropDownContainerStyle={styles.dropdownList}
-          placeholder="Seleziona un tipo di trasporto"
-          listMode="SCROLLVIEW"
-          zIndex={1000}
-        />
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    padding: 5
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  header: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    marginBottom: 10 
+  topSection: {
+    flex: 1,
+    padding: 10,
   },
-  map: { 
-    width: '100%', 
-    height: 320,
-    marginBottom: 20
+  bottomSection: {
+    flex: 1,
+    padding: 10,
   },
-  buttonContainer: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-around', 
-    marginTop: 20,
-    marginBottom: 20,
-    width: '100%'
+  map: {
+    width: '100%',
+    height: 200,
+    marginVertical: 10,
+    borderRadius: 10,
   },
-  routeText: { 
-    fontSize: 18, 
-    marginTop: 10 
-  },
-  dropdownContainer: { 
-    marginTop: 20, 
-    width: '80%',
-    zIndex: 1000
-  },
-  pickerLabel: { 
-    fontSize: 16, 
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
     marginBottom: 10,
-    alignSelf: 'center' 
+  },
+  dropdownContainer: {
+    marginBottom: 15,
+    zIndex: 1000,
+  },
+  pickerLabel: {
+    fontSize: 16,
+    marginBottom: 5,
+    color: '#333',
   },
   dropdown: {
     backgroundColor: '#f5f5f5',
-    borderColor: '#cccccc'
+    borderColor: '#ddd',
+    borderRadius: 8,
   },
   dropdownList: {
     backgroundColor: '#f5f5f5',
-    borderColor: '#cccccc'
+    borderColor: '#ddd',
   },
-  transportText: { 
-    fontSize: 18, 
-    marginTop: 70, 
-    fontWeight: 'bold' 
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+  },
+  additionalFields: {
+    marginTop: 15,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    marginBottom: 5,
+    color: '#333',
+  },
+  input: {
+    backgroundColor: '#f5f5f5',
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    fontSize: 16,
   },
 });
 

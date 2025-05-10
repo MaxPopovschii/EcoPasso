@@ -12,8 +12,8 @@ interface LoginFormState {
 
 const LoginScreen: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormState>({
-    email: '',
-    password: '',
+    email: 'maxpopovschii@gmail.com',
+    password: 'Dom200598!',
   });
   const router = useRouter();
   const {setToken} = useAuthContext();
@@ -44,7 +44,7 @@ const LoginScreen: React.FC = () => {
   };
   return (
     <LinearGradient
-      colors={['#4CAF50', '#2196F3']} // Green to Blue gradient
+      colors={['#4CAF50', '#2196F3']} 
       style={styles.container}
     >
       <KeyboardAvoidingView
