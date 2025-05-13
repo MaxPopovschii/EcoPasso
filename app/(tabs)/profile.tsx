@@ -1,237 +1,498 @@
 import CustomModal from '@/components/modals/ReusableModal';
-import ProfilePage from '@/components/ProfilePage';
 import SERVER from '@/constants/Api';
 import { useAuthContext } from '@/utils/authContext';
+import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 interface FormState {
   firstName: string;
   lastName: string;
   email: string;
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
 }
 
-export default function TabTwoScreen() {
-  const { user, setToken } = useAuthContext();
+export default function ProfileScreen() {
+  const { user, setToken, token } = useAuthContext();
   const [formData, setFormData] = useState<FormState>({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
-    email: user?.email || '',
-    currentPassword: 'Giovannitraini1995!',
-    newPassword: 'GiovanniGiovanni1995!',
-    confirmPassword: 'GiovanniGiovanni1995!'
+    email: user?.email || ''
   });
   const [modalVisible, setModalVisible] = useState(false);
-  const {token} = useAuthContext();
-  const fetchUserData = async () => {
-    try {
-      const response = await fetch(`${SERVER}/api/users/${user?.email}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) throw new Error("" + response.status);
-      
-      const userData = await response.json();
-      
-      // Check if data is in an array or direct object
-      const info = Array.isArray(userData) ? userData[0] : userData;
-      
-      setFormData(prevData => ({
-        ...prevData,
-        firstName: info.firstName || '',
-        lastName: info.lastName || ''
-      }));
-    } catch (error) {
-      Alert.alert('Request error', (error as Error).message);
-    }
-  };
+  const [avatar, setAvatar] = useState<string | undefined>(user?.avatar);
 
   useEffect(() => {
     fetchUserData();
   }, []);
 
-  const handleChange = (name: keyof FormState, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
-  const handleProfileEdit = () => {
-    setModalVisible(true);
-  };
-
-  const handlePasswordChange = () => {
-    const { currentPassword, newPassword, confirmPassword } = formData;
-    
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert("Error", "All password fields are required.");
-      return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "New passwords do not match.");
-      return;
-    }
-    
-    if (newPassword.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters long.");
-      return;
-    }
-
-    // Simulating API call to change password
-    // In a real app, you'd make an API call here
-    changePassword();
-  };
-
-  const changePassword = async () => {
+  const fetchUserData = async () => {
     try {
-      const changeDto = {
-        oldPass:formData.currentPassword,
-        newPass:formData.newPassword,
+      const response = await fetch(`${SERVER}/api/users/${user?.email}`);
+      if (!response.ok) throw new Error('Errore nel caricamento dei dati');
+      const data = await response.json();
+      setFormData({
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        email: data.email || ''
+      });
+      setAvatar(data.avatar);
+    } catch (error) {
+      Alert.alert('Errore', 'Impossibile caricare i dati utente');
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permessi negati',
+          'Per favore abilita l\'accesso alle foto nelle impostazioni del dispositivo.',
+          [
+            { text: 'OK', style: 'default' }
+          ]
+        );
+        return;
       }
-      const response = await fetch(`${SERVER}/api/users/change-password`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" , "Authorization": `Bearer ${token}`},
-        body: JSON.stringify(changeDto),
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
       });
 
-      if (!response.ok) throw new Error("" + response.status);
+      if (result.canceled) {
+        // User cancelled image picker
+        return;
+      }
+
+      if (!result.assets || !result.assets[0]) {
+        Alert.alert(
+          'Errore',
+          'Nessuna immagine selezionata. Per favore seleziona un\'immagine valida.',
+          [
+            { text: 'OK', style: 'default' }
+          ]
+        );
+        return;
+      }
+
+      const selectedAsset = result.assets[0];
+      setAvatar(selectedAsset.uri);
       
-      const res = await response.text();
-      
+      // Create form data for upload
+      const formData = new FormData();
+      formData.append('avatar', {
+        uri: selectedAsset.uri,
+        type: 'image/jpeg',
+        name: 'profile-avatar.jpg',
+      } as any);
+
+      try {
+        const response = await fetch(`${SERVER}/api/users/${user?.email}/avatar`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Errore nel caricamento dell\'immagine');
+        }
+
+        Alert.alert('Successo', 'Avatar aggiornato con successo');
+      } catch (uploadError) {
+        console.error('Upload error:', uploadError);
+        Alert.alert(
+          'Errore',
+          'Impossibile caricare l\'immagine sul server. L\'avatar verrà aggiornato solo localmente.'
+        );
+      }
     } catch (error) {
-      Alert.alert('Request error', (error as Error).message);
+      console.error('Image picker error:', error);
+      Alert.alert(
+        'Errore selezione immagine',
+        'Non è stato possibile accedere alla galleria. Verifica che l\'app abbia i permessi necessari.',
+        [
+          { 
+            text: 'OK',
+            style: 'default'
+          },
+          {
+            text: 'Riprova',
+            onPress: pickImage,
+            style: 'cancel'
+          }
+        ]
+      );
     }
   };
 
-  const handleProfileUpdate = async () => {
-    const { firstName, lastName, email } = formData;
-    
-    if (!firstName || !lastName || !email) {
-      Alert.alert("Error", "Name and email are required.");
-      return;
-    }
-    
-    // Here you would make an API call to update the profile
-    // For now, just show success
-    Alert.alert("Success", "Profile updated successfully!");
-    
-    // If password fields are filled, also handle password change
-    if (formData.currentPassword && formData.newPassword && formData.confirmPassword) {
-      handlePasswordChange();
-    } else {
+  const handleUpdate = async () => {
+    try {
+      // Validate passwords if attempting to change
+      if (formData.newPassword || formData.currentPassword || formData.confirmPassword) {
+        if (!formData.currentPassword) {
+          Alert.alert('Errore', 'Inserisci la password attuale');
+          return;
+        }
+        if (!formData.newPassword) {
+          Alert.alert('Errore', 'Inserisci la nuova password');
+          return;
+        }
+        if (formData.newPassword !== formData.confirmPassword) {
+          Alert.alert('Errore', 'Le password non coincidono');
+          return;
+        }
+        if (formData.newPassword.length < 6) {
+          Alert.alert('Errore', 'La password deve essere di almeno 6 caratteri');
+          return;
+        }
+      }
+
+      const response = await fetch(`${SERVER}/api/users/${user?.email}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword,
+          avatar
+        }),
+      });
+
+      if (!response.ok) throw new Error('Errore nell\'aggiornamento');
+      
+      Alert.alert('Successo', 'Profilo aggiornato con successo');
       setModalVisible(false);
+      
+      // Clear password fields
+      setFormData(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      }));
+    } catch (error) {
+      Alert.alert('Errore', 'Impossibile aggiornare il profilo');
     }
   };
-
-  const handleLogout = () => {
-    setToken(null)
-    router.back()
-    router.back()
-  }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <ProfilePage
-        fullName={`${formData.firstName} ${formData.lastName}`.trim()}
-        email={formData.email}
-        profilePicture={user?.avatar}
-        onEditProfile={handleProfileEdit}
-        onLogout={handleLogout}
-      />
-      
-      {/* Profile edit modal */}
-      <CustomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
-        <Text style={styles.modalTitle}>Edit Profile</Text>
-
-        <TextInput
-          style={styles.input}
-          value={formData.firstName}
-          onChangeText={(text) => handleChange('firstName', text)}
-          placeholder="First Name"
-        />
-
-        <TextInput
-          style={styles.input}
-          value={formData.lastName}
-          onChangeText={(text) => handleChange('lastName', text)}
-          placeholder="Last Name"
-        />
-
-        <TextInput
-          style={styles.input}
-          value={formData.email}
-          onChangeText={(text) => handleChange('email', text)}
-          placeholder="Email"
-          keyboardType="email-address"
-        />
-
-        <Text style={styles.sectionTitle}>Change Password (Optional)</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Current Password"
-          secureTextEntry
-          value={formData.currentPassword}
-          onChangeText={(text) => handleChange('currentPassword', text)}
-        />
-        
-        <TextInput
-          style={styles.input}
-          placeholder="New Password"
-          secureTextEntry
-          value={formData.newPassword}
-          onChangeText={(text) => handleChange('newPassword', text)}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm New Password"
-          secureTextEntry
-          value={formData.confirmPassword}
-          onChangeText={(text) => handleChange('confirmPassword', text)}
-        />
-
-        <View style={styles.buttonContainer}>
-          <Button title="Save" onPress={handleProfileUpdate} />
-          <Button title="Cancel" color="red" onPress={() => setModalVisible(false)} />
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient 
+        colors={['#4CAF50', '#2196F3']} 
+        style={styles.mainGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={styles.avatar} />
+            ) : (
+              <MaterialIcons name="person" size={40} color="#fff" />
+            )}
+            <View style={styles.avatarBadge}>
+              <MaterialIcons name="camera-alt" size={16} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.userName}>{formData.firstName} {formData.lastName}</Text>
+          <Text style={styles.userEmail}>{formData.email}</Text>
         </View>
-      </CustomModal>
+
+        <ScrollView 
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+        >
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setModalVisible(true)}
+          >
+            <MaterialIcons name="edit" size={24} color="#4CAF50" />
+            <Text style={styles.menuText}>Modifica Profilo</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setToken(null);
+              router.replace('/');
+            }}
+          >
+            <MaterialIcons name="logout" size={24} color="#ff5252" />
+            <Text style={[styles.menuText, { color: '#ff5252' }]}>Logout</Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        <CustomModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Modifica Profilo</Text>
+            
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={formData.firstName}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, firstName: text }))}
+                placeholder="Nome"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={formData.lastName}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, lastName: text }))}
+                placeholder="Cognome"
+              />
+            </View>
+
+            <View style={styles.divider} />
+            <Text style={styles.sectionTitle}>Cambia Password</Text>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={formData.currentPassword}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, currentPassword: text }))}
+                placeholder="Password Attuale"
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={formData.newPassword}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, newPassword: text }))}
+                placeholder="Nuova Password"
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={formData.confirmPassword}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, confirmPassword: text }))}
+                placeholder="Conferma Nuova Password"
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>Annulla</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.button, styles.saveButton]}
+                onPress={handleUpdate}
+              >
+                <Text style={styles.buttonText}>Salva</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </CustomModal>
+      </LinearGradient>
     </SafeAreaView>
   );
 }
 
-// Styles
 const styles = StyleSheet.create({
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
   },
-  sectionTitle: {
-    fontSize: 16,
+  mainGradient: {
+    flex: 1,
+  },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 16,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
+  },
+  avatarContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.5)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  avatar: {
+    width: 114,
+    height: 114,
+    borderRadius: 57,
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: '#4CAF50',
+    borderRadius: 18,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  userName: {
+    fontSize: 28,
     fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 10,
+    color: '#fff',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  userEmail: {
+    fontSize: 16,
+    color: '#fff',
+    opacity: 0.9,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  modalContent: {
+    padding: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: '#fff',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 24,
+    textAlign: 'center',
+    color: '#333',
+  },
+  inputContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   input: {
-    width: '100%',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginBottom: 10,
+    height: 50,
+    fontSize: 16,
+    color: '#333',
   },
-  buttonContainer: {
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 24,
+  },
+  button: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    marginHorizontal: 6,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+  },
+  cancelButton: {
+    backgroundColor: '#ff5252',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e9ecef',
+    marginVertical: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 16,
   },
 });

@@ -1,11 +1,11 @@
-import React from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback } from 'react';
 import { Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import FoodComponent from '../FoodComponent';
 import HomeComponent from '../HomeComponent';
 import { OtherComponent } from '../OtherComponent';
 import TransportComponent from '../TransportComponents';
-
-
 
 interface CategoryModalProps {
   visible: boolean;
@@ -14,39 +14,106 @@ interface CategoryModalProps {
 }
 
 const windowHeight = Dimensions.get('window').height;
-const windowWidth = Dimensions.get('window').width;
 
 const CategoryModal: React.FC<CategoryModalProps> = ({ visible, category, onClose }) => {
-  const renderCategoryContent = () => {
+  const getCategoryIcon = () => {
     switch (category) {
       case 'Trasporti':
-        return <TransportComponent />;
+        return 'directions-car';
       case 'Casa':
-        return <HomeComponent />;
+        return 'home';
       case 'Alimentazione':
-        return <FoodComponent />;
+        return 'restaurant';
       case 'Altro':
-        return <OtherComponent />;
+        return 'more-horiz';
       default:
-        return <Text>Unknown category</Text>;
+        return 'help-outline';
     }
   };
 
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <ScrollView style={styles.modalContent}>
-          <Text style={styles.header}>{category?.toUpperCase()}</Text>
-          {renderCategoryContent()}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-            <TouchableOpacity style={styles.addButton} onPress={() => {}}>
-              <Text style={styles.addText}>Aggiungi</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeText}>Chiudi</Text>
-            </TouchableOpacity>
+  const renderCategoryContent = useCallback(() => {
+    switch (category) {
+      case 'Trasporti':
+        return (
+          <View style={styles.componentWrapper}>
+            <TransportComponent />
           </View>
-        </ScrollView>
+        );
+      case 'Casa':
+        return (
+          <View style={styles.componentWrapper}>
+            <HomeComponent />
+          </View>
+        );
+      case 'Alimentazione':
+        return (
+          <View style={styles.componentWrapper}>
+            <FoodComponent />
+          </View>
+        );
+      case 'Altro':
+        return (
+          <View style={styles.componentWrapper}>
+            <OtherComponent />
+          </View>
+        );
+      default:
+        return (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Categoria sconosciuta</Text>
+          </View>
+        );
+    }
+  }, [category]);
+
+  return (
+    <Modal 
+      visible={visible} 
+      transparent={true} 
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.modalContainer}>
+          <LinearGradient
+            colors={['#4CAF50', '#2196F3']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.headerContent}>
+              <MaterialIcons 
+                name={getCategoryIcon()} 
+                size={24} 
+                color="white" 
+              />
+              <Text style={styles.header}>
+                {category ? category.toUpperCase() : 'CATEGORIA'}
+              </Text>
+              <TouchableOpacity 
+                onPress={onClose} 
+                style={styles.closeIcon}
+                accessibilityLabel="Close modal"
+              >
+                <MaterialIcons 
+                  name="close" 
+                  size={24} 
+                  color="white" 
+                />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={true}
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {renderCategoryContent()}
+          </ScrollView>
+        </View>
       </View>
     </Modal>
   );
@@ -59,40 +126,61 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
+  modalContainer: {
     width: '95%',
-    maxHeight: windowHeight * 0.75,
+    height: windowHeight * 0.9, // Fixed height instead of maxHeight
     backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 10,
+    borderRadius: 15,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  headerGradient: {
+    padding: 15,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   header: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
-    alignSelf: 'center',
-  },
-  addButton: {
-    width: '48%',
-    alignItems: 'center',
-    backgroundColor: '#4CAF50',
-    padding: 10,
-    borderRadius: 5,
-  },
-  addText: {
     color: 'white',
-    fontSize: 16,
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 10,
   },
-  closeButton: {
-    width: '48%',
+  closeIcon: {
+    padding: 5,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 15,
+  },
+  componentWrapper: {
+    flex: 1,
+    minHeight: windowHeight * 0.5, // Ensure minimum height for components
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#2196F3',
-    padding: 10,
-    borderRadius: 5,
+    padding: 20,
   },
-  closeText: {
-    color: 'white',
+  errorText: {
     fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
 

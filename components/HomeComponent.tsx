@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Button, Alert, TouchableOpacity } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
+import SERVER from '@/constants/Api';
+import { useAuthContext } from '@/utils/authContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useState } from 'react';
+import { Alert, Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 export const HomeComponent = () => {
+  const { user } = useAuthContext();
+
   // Stati per il dropdown
   const [open, setOpen] = useState(false);
   const [billType, setBillType] = useState(null);
@@ -61,25 +65,65 @@ export const HomeComponent = () => {
     }
 
     try {
-      const response = await fetch('https://tuo-server-api.com/calculate-ecofootprint', {
+      // Prima creiamo l'Activity
+      const activityData = {
+        user: {
+          email: user?.email
+        },
+        activityType: {
+          id: 2  // ID per le attività domestiche
+        },
+        insertionDate: new Date().toISOString(),
+        notes: `Consumo ${billType}: ${consumption} ${getUnit()} dal ${formatDate(startDate)} al ${formatDate(endDate)}`
+      };
+
+      // Chiamata per creare l'Activity
+      const activityResponse = await fetch(`${SERVER}/api/activities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          billType: billType,
-          consumption: parseFloat(consumption),
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString()
-        }),
+        body: JSON.stringify(activityData),
       });
 
-      const data = await response.json();
+      if (!activityResponse.ok) {
+        throw new Error('Errore nella creazione dell\'attività');
+      }
 
-      if (!response.ok) Alert.alert("Errore", "Si è verificato un errore durante il calcolo.");
+      const activityResult = await activityResponse.json();
+
+      // Ora creiamo la HomeActivity
+      const homeActivityData = {
+        activity: {
+          id: activityResult.id
+        },
+        utilityType: billType,
+        consumption: parseFloat(consumption),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      };
+
+      const homeResponse = await fetch(`${SERVER}/api/home-activities/new`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(homeActivityData),
+      });
+
+      const homeData = await homeResponse.json();
+      
+      if (homeResponse.ok) {
+        Alert.alert("Successo", "Consumo registrato con successo!");
+        // Reset dei campi
+        handleReset();
+      } else {
+        throw new Error(homeData.message || 'Errore nel salvataggio del consumo');
+      }
+
     } catch (error) {
-      console.error(error);
-      Alert.alert("Errore", "Impossibile raggiungere il server.");
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
+      Alert.alert("Errore", "Impossibile salvare il consumo: " + errorMessage);
     }
   };
 
@@ -93,26 +137,32 @@ export const HomeComponent = () => {
 
   return (
     <View style={styles.container}>
-        {/* Date inputs */}
-        <View style={styles.dateContainer}>
+      <View style={styles.dateContainer}>
         <Text style={styles.dateLabel}>Data Inizio:</Text>
-        <DateTimePicker
-          value={startDate}
-          mode="date"
-          display="default"
-          onChange={onStartDateChange}
-        />
+        <View style={styles.pickerWrapper}>
+          <DateTimePicker
+            value={startDate}
+            mode="date"
+            display="default"
+            onChange={onStartDateChange}
+            textColor="#000000"
+          />
+        </View>
       </View>
 
       <View style={styles.dateContainer}>
         <Text style={styles.dateLabel}>Data Fine:</Text>
-        <DateTimePicker
-          value={endDate}
-          mode="date"
-          display="default"
-          onChange={onEndDateChange}
-        />
+        <View style={styles.pickerWrapper}>
+          <DateTimePicker
+            value={endDate}
+            mode="date"
+            display="default"
+            onChange={onEndDateChange}
+            textColor="#000000"
+          />
+        </View>
       </View>
+
       <View style={styles.dropdownContainer}>
         <DropDownPicker
           open={open}
@@ -124,25 +174,44 @@ export const HomeComponent = () => {
           placeholder="Seleziona tipo di bolletta..."
           style={styles.dropdown}
           dropDownContainerStyle={styles.dropdownList}
-          listMode="SCROLLVIEW"
-          zIndex={1000}
+          listMode="MODAL"
+          modalProps={{
+            animationType: "fade"
+          }}
+          modalContentContainerStyle={styles.modalContent}
+          labelStyle={styles.dropdownLabel}
+          placeholderStyle={styles.dropdownPlaceholder}
         />
       </View>
 
       <TextInput
         style={styles.input}
         placeholder={billType ? `Consumo (${getUnit()})` : 'Consumo'}
+        placeholderTextColor="#999"
         keyboardType="numeric"
         value={consumption}
         onChangeText={setConsumption}
       />
 
       <Text style={styles.result}>
-        {consumption ? `Risultato: ${consumption} ${getUnit()} da ${formatDate(startDate)} a ${formatDate(endDate)}` : 'Non hai messo un consumo.'}
+        {consumption 
+          ? <Text>Risultato: {consumption} {getUnit()} da {formatDate(startDate)} a {formatDate(endDate)}</Text>
+          : <Text>Non hai messo un consumo.</Text>
+        }
       </Text>
 
       <View style={styles.buttonContainer}>
-        <Button title="Reset" onPress={handleReset} color="gray" />
+        <Button 
+          title="Salva Consumo" 
+          onPress={handleCalculate} 
+          color="#4CAF50"
+        />
+        <View style={{ width: 20 }} />
+        <Button 
+          title="Reset" 
+          onPress={handleReset} 
+          color="gray" 
+        />
       </View>
     </View>
   );
@@ -212,6 +281,24 @@ const styles = StyleSheet.create({
     marginTop: 20, 
     fontSize: 18, 
     fontWeight: 'bold' 
+  },
+  pickerWrapper: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    overflow: 'hidden'
+  },
+  dropdownLabel: {
+    color: '#000000',
+    fontSize: 16
+  },
+  dropdownPlaceholder: {
+    color: '#999',
+    fontSize: 16
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
   }
 });
 

@@ -1,58 +1,68 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient from Expo
-import { Button } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import React from 'react';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Button } from 'react-native-paper';
+
+const { width } = Dimensions.get('window');
 
 const HomeScreen: React.FC = () => {
   return (
     <LinearGradient
-      colors={['#4CAF50', '#2196F3']} // Green to Blue gradient
+      colors={['#4CAF50', '#2196F3']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.background}
     >
       <View style={styles.container}>
-        {/* Logo Section */}
         <View style={styles.logoContainer}>
-          {/* <Image
-            source={require('./assets/logo.png')} // Add a logo image if available
-            style={styles.logo}
-          /> */}
+          <MaterialCommunityIcons name="leaf" size={80} color="#fff" />
         </View>
 
-        <Text style={styles.title}>Benvenuti to EcoPasso</Text>
-        <Text style={styles.subtitle}>
-          Track your ecological footprint and make a difference!
-        </Text>
+        <View style={styles.contentContainer}>
+          <Text style={styles.title}>EcoPasso</Text>
+          <Text style={styles.subtitle}>
+            Il tuo percorso verso un futuro sostenibile
+          </Text>
+          
+          <Text style={styles.infoText}>
+            Unisciti alla nostra community e inizia a monitorare il tuo impatto ambientale.
+            Insieme possiamo fare la differenza per il nostro pianeta.
+          </Text>
+        </View>
         
-        <Text style={styles.infoText}>
-          Join our community to monitor your eco-impact. Reduce waste, track consumption, and make eco-friendly choices.
-        </Text>
-        
-        {/* Buttons */}
         <View style={styles.buttonContainer}>
           <Button
             mode="contained"
-            icon="login"
+            icon={({ size, color }) => (
+              <MaterialCommunityIcons name="login" size={size} color={color} />
+            )}
             onPress={() => router.navigate("/login")}
-            style={[styles.button, styles.loginButton]}
+            style={styles.button}
+            contentStyle={styles.buttonContent}
             labelStyle={styles.buttonText}
           >
-            Login
+            Accedi
           </Button>
+          
           <Button
-            mode="contained"
-            icon="account-plus"
+            mode="outlined"
+            icon={({ size, color }) => (
+              <MaterialCommunityIcons name="account-plus" size={size} color={color} />
+            )}
             onPress={() => router.navigate("/registration")}
             style={[styles.button, styles.registerButton]}
-            labelStyle={styles.buttonText}
+            contentStyle={styles.buttonContent}
+            labelStyle={[styles.buttonText, styles.registerButtonText]}
           >
-            Register
+            Registrati
           </Button>
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>© 2025 EcoTrack. All rights reserved.</Text>
+          <MaterialCommunityIcons name="earth" size={24} color="rgba(255,255,255,0.6)" />
+          <Text style={styles.footerText}>© 2025 EcoPasso</Text>
         </View>
       </View>
     </LinearGradient>
@@ -62,86 +72,84 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   container: {
-    paddingHorizontal: 30,
-    height: '80%',
-    width: '90%',
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 40,
     justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Light overlay for readability
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 8,
   },
   logoContainer: {
-    width: '100%',
     alignItems: 'center',
-    marginBottom: 30,
+    marginTop: 40,
   },
-  logo: {
-    width: 120,
-    height: 120,
-    resizeMode: 'contain',
+  contentContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 15,
+    marginBottom: 16,
     textAlign: 'center',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   subtitle: {
-    fontSize: 18,
-    color: '#ddd',
+    fontSize: 20,
+    color: '#fff',
     textAlign: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 10,
+    marginBottom: 24,
+    opacity: 0.9,
+    letterSpacing: 0.5,
   },
   infoText: {
     fontSize: 16,
-    color: '#ddd',
+    color: '#fff',
     textAlign: 'center',
-    marginBottom: 40,
-    paddingHorizontal: 20,
     lineHeight: 24,
+    opacity: 0.8,
+    maxWidth: width * 0.8,
   },
   buttonContainer: {
     width: '100%',
-    alignItems: 'center',
+    paddingHorizontal: 16,
+    gap: 16,
   },
   button: {
-    width: '80%',
-    marginVertical: 12,
-    paddingVertical: 12,
-    borderRadius: 30,
-    elevation: 5,
+    borderRadius: 12,
+    elevation: 4,
+    backgroundColor: '#fff',
   },
-  loginButton: {
-    backgroundColor: '#4CAF50',
-  },
-  registerButton: {
-    backgroundColor: '#2196F3',
+  buttonContent: {
+    height: 56,
+    flexDirection: 'row-reverse',
   },
   buttonText: {
     fontSize: 18,
+    letterSpacing: 1,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  registerButton: {
+    backgroundColor: 'transparent',
+    borderColor: '#fff',
+    borderWidth: 2,
+  },
+  registerButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
   },
   footer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 30,
+    justifyContent: 'center',
+    gap: 8,
   },
   footerText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#fff',
     opacity: 0.6,
   },

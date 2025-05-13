@@ -33,10 +33,21 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "L'app necessita dell'accesso alle tue foto per modificare l'avatar del profilo."
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "fonts": [
+      "./assets/fonts/Roboto-Regular.ttf",
+      "./assets/fonts/Roboto-Bold.ttf",
+      "./assets/fonts/Roboto-Medium.ttf"
+    ]
   }
 }

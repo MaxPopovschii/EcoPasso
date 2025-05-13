@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
+  Animated,
+  Dimensions,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -15,6 +17,9 @@ import {
   View
 } from 'react-native';
 import { Button } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
+const { width } = Dimensions.get('window');
 
 interface RegFormState {
   firstName: string;
@@ -36,6 +41,26 @@ const RegisterScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const router = useRouter();
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const fadeAnim = new Animated.Value(0);
+  const slideAnim = new Animated.Value(50);
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const handleChange = (name: keyof RegFormState, value: string) => {
     setFormData({
@@ -83,25 +108,139 @@ const RegisterScreen = () => {
   };
 
   return (
-    <LinearGradient colors={['#4CAF50', '#2196F3']} style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inner}>
+    <LinearGradient
+      colors={['#4CAF50', '#2196F3']} 
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={styles.inner}
+      >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.formContainer}>
-            <Text style={styles.header}>Sign Up</Text>
+          <Animated.View 
+            style={[
+              styles.formContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }
+            ]}
+          >
+            <View style={styles.logoContainer}>
+              <MaterialCommunityIcons name="leaf" size={60} color="#fff" />
+              <Text style={styles.header}>Benvenuto</Text>
+              <Text style={styles.subHeader}>Crea il tuo account</Text>
+            </View>
+
             {error && <Text style={styles.errorText}>{error}</Text>}
-            <TextInput placeholder="Name" style={styles.textInput} value={formData.firstName} onChangeText={(text) => handleChange('firstName', text)} placeholderTextColor="#aaa"/>
-            <TextInput placeholder="Surname" style={styles.textInput} value={formData.lastName} onChangeText={(text) => handleChange('lastName', text)} placeholderTextColor="#aaa"/>
-            <TextInput placeholder="Email" style={styles.textInput} keyboardType="email-address" autoCapitalize="none" value={formData.email} onChangeText={(text) => handleChange('email', text)} placeholderTextColor="#aaa"/>
-            <TextInput placeholder="Password" style={styles.textInput} secureTextEntry value={formData.passwordHash} onChangeText={(text) => handleChange('passwordHash', text)} placeholderTextColor="#aaa"/>
-            <TextInput placeholder="Confirm Password" style={styles.textInput} secureTextEntry value={formData.passwordConfirm} onChangeText={(text) => handleChange('passwordConfirm', text)} placeholderTextColor="#aaa"/>
-            <Button mode="contained" onPress={handleSubmit} style={styles.button}>Sign Up</Button>
-            <TouchableOpacity onPress={() => router.navigate('/login')}>
-              <Text style={styles.loginLink}>Already have an account? Login</Text>
+
+            <View style={styles.inputContainer}>
+              <MaterialCommunityIcons name="account-outline" size={24} color="#fff" style={styles.inputIcon} />
+              <TextInput 
+                placeholder="Nome" 
+                style={styles.input} 
+                value={formData.firstName} 
+                onChangeText={(text) => handleChange('firstName', text)}
+                placeholderTextColor="rgba(255,255,255,0.7)"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialCommunityIcons name="account-outline" size={24} color="#fff" style={styles.inputIcon} />
+              <TextInput 
+                placeholder="Cognome" 
+                style={styles.input} 
+                value={formData.lastName} 
+                onChangeText={(text) => handleChange('lastName', text)}
+                placeholderTextColor="rgba(255,255,255,0.7)"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialCommunityIcons name="email-outline" size={24} color="#fff" style={styles.inputIcon} />
+              <TextInput 
+                placeholder="Email" 
+                style={styles.input} 
+                keyboardType="email-address" 
+                autoCapitalize="none"
+                value={formData.email} 
+                onChangeText={(text) => handleChange('email', text)}
+                placeholderTextColor="rgba(255,255,255,0.7)"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialCommunityIcons name="lock-outline" size={24} color="#fff" style={styles.inputIcon} />
+              <TextInput 
+                placeholder="Password" 
+                style={[styles.input, { flex: 1 }]} 
+                secureTextEntry={!showPassword}
+                value={formData.passwordHash} 
+                onChangeText={(text) => handleChange('passwordHash', text)}
+                placeholderTextColor="rgba(255,255,255,0.7)"
+              />
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.passwordToggle}
+              >
+                <MaterialCommunityIcons 
+                  name={showPassword ? "eye-off" : "eye"} 
+                  size={24} 
+                  color="#fff" 
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialCommunityIcons name="lock-outline" size={24} color="#fff" style={styles.inputIcon} />
+              <TextInput 
+                placeholder="Conferma Password" 
+                style={[styles.input, { flex: 1 }]} 
+                secureTextEntry={!showConfirmPassword}
+                value={formData.passwordConfirm} 
+                onChangeText={(text) => handleChange('passwordConfirm', text)}
+                placeholderTextColor="rgba(255,255,255,0.7)"
+              />
+              <TouchableOpacity 
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={styles.passwordToggle}
+              >
+                <MaterialCommunityIcons 
+                  name={showConfirmPassword ? "eye-off" : "eye"} 
+                  size={24} 
+                  color="#fff" 
+                />
+              </TouchableOpacity>
+            </View>
+
+            <Button 
+              mode="contained" 
+              onPress={handleSubmit} 
+              style={styles.button}
+              contentStyle={styles.buttonContent}
+            >
+              Registrati
+            </Button>
+
+            <TouchableOpacity 
+              onPress={() => router.navigate('/login')}
+              style={styles.loginLinkContainer}
+            >
+              <Text style={styles.loginLink}>
+                Hai già un account? <Text style={styles.loginLinkBold}>Accedi</Text>
+              </Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-      <Modal visible={modalVisible} transparent animationType="slide">
+      <Modal 
+        visible={modalVisible} 
+        transparent 
+        animationType="slide"
+        statusBarTranslucent
+      >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalHeader}>Inserisci il Codice OTP</Text>
@@ -136,33 +275,104 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   inner: {
     flex: 1,
-    width: '100%',
     justifyContent: 'center',
-    alignItems: 'center',
     padding: 24,
   },
   formContainer: {
-    width: '90%',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 15,
-    padding: 25,
+    width: '100%',
+    padding: 24,
+  },
+  logoContainer: {
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 6,
+    marginBottom: 32,
   },
   header: {
-    fontSize: 28,
-    color: '#333',
+    fontSize: 32,
+    marginTop: 16,
+    color: '#fff',
     fontWeight: 'bold',
-    marginBottom: 20,
+    textAlign: 'center',
+  },
+  subHeader: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 8,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 24,
+  },
+  inputIcon: {
+    marginRight: 12,
+    color: '#fff',
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    fontSize: 16,
+    color: '#fff',
+    paddingVertical: 8,
+  },
+  button: {
+    marginTop: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  buttonContent: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginLinkContainer: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  loginLink: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+  },
+  loginLinkBold: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  errorText: {
+    color: '#ff6b6b',
+    fontSize: 14,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    minHeight: 300,
+  },
+  modalHeader: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  otpInfo: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
   },
   textInput: {
     width: '100%',
@@ -170,66 +380,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     borderRadius: 8,
     paddingHorizontal: 12,
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 15,
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 14,
-    marginBottom: 10,
-  },
-  button: {
-    width: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 10,
-    marginVertical: 10,
-  },
-  loginLink: {
-    color: '#4CAF50',
-    fontSize: 16,
-    marginTop: 15,
-    textDecorationLine: 'underline',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '85%',
-    padding: 25,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 6,
-  },
-  otpInfo: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-    paddingHorizontal: 10,
-  },
-  modalHeader: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-  },
-  modalTextInput: {
-    width: '100%',
-    height: 45,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    paddingHorizontal: 10,
     fontSize: 16,
     color: '#333',
     marginBottom: 15,
@@ -251,8 +401,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: '#4CAF50',
     borderRadius: 8,
-  }
+  },
+  passwordToggle: {
+    padding: 8,
+  },
 });
-
 
 export default RegisterScreen;

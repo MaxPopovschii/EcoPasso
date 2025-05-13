@@ -10,11 +10,10 @@ const DashboardScreen: React.FC = () => {
     month: [150, 200, 180, 220], 
   };
   const {user} = useAuthContext();
-  console.log('user', user);
   return (
     <SafeAreaView style={{flex: 1}}>
       <HomePageComponent
-        userName={user?.firstName + ' ' + user?.lastName}
+        email={user?.email as string}
         avatar={user?.avatar}
         statistics={userStats}
       />

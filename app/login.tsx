@@ -1,9 +1,24 @@
 import SERVER from '@/constants/Api';
 import { useAuthContext } from '@/utils/authContext';
-import { LinearGradient } from 'expo-linear-gradient'; // Import for linear gradient
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import {
+  Alert,
+  Dimensions,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
+} from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 interface LoginFormState {
   email: string;
@@ -15,6 +30,7 @@ const LoginScreen: React.FC = () => {
     email: 'maxpopovschii@gmail.com',
     password: 'Dom200598!',
   });
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const {setToken} = useAuthContext();
 
@@ -42,9 +58,12 @@ const LoginScreen: React.FC = () => {
       Alert.alert('Login Failed', (error as Error).message);
     }
   };
+
   return (
     <LinearGradient
       colors={['#4CAF50', '#2196F3']} 
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -52,26 +71,59 @@ const LoginScreen: React.FC = () => {
         style={styles.inner}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.formContainer}>
-            <Text style={styles.header}>Sign In</Text>
-            <TextInput
-              placeholder="Email"
-              placeholderTextColor="#aaa"
-              style={styles.textInput}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={formData.email}
-              onChangeText={(text) => handleChange('email', text)} // Update email
-            />
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor="#aaa"
-              style={styles.textInput}
-              secureTextEntry
-              value={formData.password}
-              onChangeText={(text) => handleChange('password', text)} // Update password
-            />
+            <View style={styles.logoContainer}>
+              <MaterialCommunityIcons name="leaf" size={60} color="#fff" />
+              <Text style={styles.header}>Bentornato</Text>
+              <Text style={styles.subHeader}>Accedi al tuo account</Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialCommunityIcons name="email-outline" size={24} color="#fff" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Email"
+                placeholderTextColor="rgba(255,255,255,0.7)"
+                style={styles.textInput}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={formData.email}
+                onChangeText={(text) => handleChange('email', text)}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialCommunityIcons name="lock-outline" size={24} color="#fff" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Password"
+                placeholderTextColor="rgba(255,255,255,0.7)"
+                style={[styles.textInput, { flex: 1 }]}
+                secureTextEntry={!showPassword}
+                value={formData.password}
+                onChangeText={(text) => handleChange('password', text)}
+              />
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.passwordToggle}
+              >
+                <MaterialCommunityIcons 
+                  name={showPassword ? "eye-off" : "eye"} 
+                  size={24} 
+                  color="#fff" 
+                />
+              </TouchableOpacity>
+            </View>
+
             <TouchableOpacity style={styles.btnContainer} onPress={handleLogin}>
-              <Text style={styles.btnText}>Entra</Text>
+              <Text style={styles.btnText}>Accedi</Text>
+              <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.registerLink}
+              onPress={() => router.push('/registration')}
+            >
+              <Text style={styles.registerText}>
+                Non hai un account? <Text style={styles.registerHighlight}>Registrati</Text>
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableWithoutFeedback>
@@ -83,60 +135,82 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   inner: {
     flex: 1,
-    width: '100%',
     justifyContent: 'center',
-    alignItems: 'center',
     padding: 24,
   },
   formContainer: {
     width: '100%',
-    height: "95%",
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Overlay background for the form
-    borderRadius: 10,
-    padding: 20,
-    justifyContent: 'center',
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)',
+  },
+  logoContainer: {
     alignItems: 'center',
+    marginBottom: 32,
   },
   header: {
-    fontSize: 36,
-    marginBottom: 24,
-    color: '#fff', // White header text
+    fontSize: 32,
+    marginTop: 16,
+    color: '#fff',
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  textInput: {
-    width: '100%',
-    height: 50,
-    borderColor: '#fff', // White border for text inputs
-    borderBottomWidth: 2,
-    marginBottom: 20,
-    paddingHorizontal: 8,
+  subHeader: {
     fontSize: 16,
-    color: '#fff', // White text color for inputs
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 8,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 24,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  textInput: {
+    flex: 1,
+    height: 50,
+    fontSize: 16,
+    color: '#fff',
+    paddingVertical: 8,
   },
   btnContainer: {
-    width: '80%',
-    marginTop: 20,
-    backgroundColor: '#4caf50', // Green button color
-    borderRadius: 8,
-    paddingVertical: 12,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    height: 50,
+    justifyContent: 'center',
+    marginTop: 24,
+    gap: 8,
   },
   btnText: {
-    color: '#fff', // White text color for button
+    color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  registerLink: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  registerText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+  },
+  registerHighlight: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  passwordToggle: {
+    padding: 8,
+    marginLeft: 8,
   },
 });
 
