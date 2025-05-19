@@ -38,7 +38,7 @@ const HomeScreen: React.FC = () => {
             icon={({ size, color }) => (
               <MaterialCommunityIcons name="login" size={size} color={color} />
             )}
-            onPress={() => router.navigate("/login")}
+            onPress={() => router.push("/login")}
             style={styles.button}
             contentStyle={styles.buttonContent}
             labelStyle={styles.buttonText}
@@ -51,7 +51,7 @@ const HomeScreen: React.FC = () => {
             icon={({ size, color }) => (
               <MaterialCommunityIcons name="account-plus" size={size} color={color} />
             )}
-            onPress={() => router.navigate("/registration")}
+            onPress={() => router.push("/registration")}
             style={[styles.button, styles.registerButton]}
             contentStyle={styles.buttonContent}
             labelStyle={[styles.buttonText, styles.registerButtonText]}

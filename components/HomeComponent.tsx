@@ -24,7 +24,7 @@ export const HomeComponent = () => {
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-
+  const {token} = useAuthContext();
   // Funzione per ottenere l'unità di misura corretta
   const getUnit = () => {
     if (billType === 'electricity') {
@@ -82,6 +82,7 @@ export const HomeComponent = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(activityData),
       });
