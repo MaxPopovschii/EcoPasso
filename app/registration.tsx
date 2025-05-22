@@ -31,11 +31,11 @@ interface RegFormState {
 
 const RegisterScreen = () => {
   const [formData, setFormData] = useState<RegFormState>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    passwordHash: '',
-    passwordConfirm: '',
+    firstName: 'Giovanni',
+    lastName: 'Traini',
+    email: 'Giocrew09@gmail.com',
+    passwordHash: 'Automotodrom3033!',
+    passwordConfirm: 'Automotodrom3033!',
   });
   const [otp, setOtp] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -44,23 +44,6 @@ const RegisterScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(50);
-
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const handleChange = (name: keyof RegFormState, value: string) => {
     setFormData({
@@ -69,43 +52,71 @@ const RegisterScreen = () => {
     });
   };
 
-  const handleSubmit = async () => {
-    const { firstName, lastName, email, passwordHash, passwordConfirm } = formData;
-    if (!firstName || !lastName || !email || !passwordHash || !passwordConfirm) {
-      setError('All fields are required.');
-      return;
+const handleSubmit = async () => {
+  const { firstName, lastName, email, passwordHash, passwordConfirm } = formData;
+  if (!firstName || !lastName || !email || !passwordHash || !passwordConfirm) {
+    setError('All fields are required.');
+    return;
+  }
+  if (passwordHash !== passwordConfirm) {
+    setError('Passwords do not match.');
+    return;
+  }
+  try {
+    const response = await fetch(`${SERVER}/email/send-otp?email=${email}`, {
+      method: 'POST',
+    });
+    if (response.ok) {
+      setModalVisible(true);
+    } else {
+      Alert.alert('Errore', 'Invio OTP fallito.');
     }
-    if (passwordHash !== passwordConfirm) {
-      setError('Passwords do not match.');
-      return;
-    }
-    try {
-      const response = await fetch(`${SERVER}/auth/send-otp?email=${email}`, { method: 'POST' });
-      if (response.ok) {
-        setModalVisible(true);
-      } else {
-        Alert.alert('Error', 'Failed to send OTP.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Something went wrong.');
-    }
-  };
+  } catch (error) {
+    Alert.alert('Errore', 'Si è verificato un problema.');
+  }
+};
 
-  const verifyOtp = async () => {
-    try {
-      const response = await fetch(`${SERVER}/auth/verify-otp?otp=${otp}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...formData})
-      });
-      if (!response.ok) throw new Error(await response.text());
-      Alert.alert('Success', 'OTP Verified Successfully!');
-      setModalVisible(false);
-      setTimeout(() => router.navigate('/login'), 2000);
-    } catch (error) {
-      Alert.alert('Error');
+const verifyOtp = async () => {
+  try {
+    const otpResponse = await fetch(`${SERVER}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: formData.email, otp }),
+    });
+
+    if (!otpResponse.ok) {
+      const errorText = await otpResponse.text();
+      throw new Error(errorText);
     }
-  };
+    const registerResponse = await fetch(`${SERVER}/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: formData.firstName,
+        surname: formData.lastName,
+        email: formData.email,
+        password: formData.passwordHash,
+      }),
+    });
+
+    if (!registerResponse.ok) {
+      const errorText = await registerResponse.text();
+      throw new Error(`OTP valido, ma errore registrazione: ${errorText}`);
+    }
+
+    Alert.alert('Successo', 'Registrazione completata!');
+    setModalVisible(false);
+    setTimeout(() => router.navigate('/login'), 2000);
+
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Errore durante la registrazione';
+    Alert.alert('Errore', message);
+  }
+};
+
+
+
+  
 
   return (
     <LinearGradient
@@ -122,10 +133,6 @@ const RegisterScreen = () => {
           <Animated.View 
             style={[
               styles.formContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              }
             ]}
           >
             <View style={styles.logoContainer}>
@@ -238,8 +245,6 @@ const RegisterScreen = () => {
       <Modal 
         visible={modalVisible} 
         transparent 
-        animationType="slide"
-        statusBarTranslucent
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -350,7 +355,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {

@@ -1,5 +1,6 @@
 import CustomModal from '@/components/modals/ReusableModal';
 import SERVER from '@/constants/Api';
+import { useAuth } from '@/hooks/useAuth';
 import { useAuthContext } from '@/utils/authContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,6 +30,7 @@ interface FormState {
 
 export default function ProfileScreen() {
   const { user, setToken, token } = useAuthContext();
+  const {logout} = useAuth();
   const [formData, setFormData] = useState<FormState>({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -43,7 +45,7 @@ export default function ProfileScreen() {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch(`${SERVER}/api/users/${user?.email}`);
+      const response = await fetch(`${SERVER}/users/${user?.email}`);
       if (!response.ok) throw new Error('Errore nel caricamento dei dati');
       const data = await response.json();
       setFormData({
@@ -201,6 +203,11 @@ export default function ProfileScreen() {
       Alert.alert('Errore', 'Impossibile aggiornare il profilo');
     }
   };
+  const handleLogout = () => {
+    logout();
+    router.back();
+    router.back();
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -240,8 +247,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
-              setToken(null);
-              router.replace('/');
+              handleLogout();
             }}
           >
             <MaterialIcons name="logout" size={24} color="#ff5252" />
