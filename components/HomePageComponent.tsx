@@ -26,8 +26,7 @@ const HomePageComponent: React.FC<HomePageProps> = ({ email, avatar }) => {
   };
 
   const hasData = () => {
-    return statistics.monthly.some(value => value > 0) || 
-           statistics.yearly.some(value => value > 0);
+    return statistics.monthly.some(value => value > 0) || statistics.yearly.some(value => value > 0);
   };
 
   useEffect(() => {
@@ -108,6 +107,7 @@ const HomePageComponent: React.FC<HomePageProps> = ({ email, avatar }) => {
                 width={screenWidth - 40}
                 height={220}
                 yAxisSuffix=" kg"
+                yAxisLabel=''
                 chartConfig={chartConfig}
                 style={styles.chart}
               />

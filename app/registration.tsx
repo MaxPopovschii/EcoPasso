@@ -31,9 +31,9 @@ interface RegFormState {
 
 const RegisterScreen = () => {
   const [formData, setFormData] = useState<RegFormState>({
-    firstName: 'Giovanni',
-    lastName: 'Traini',
-    email: 'Giocrew09@gmail.com',
+    firstName: 'Maxim',
+    lastName: 'Popovschii',
+    email: 'maxpopovschii@gmail.com',
     passwordHash: 'Automotodrom3033!',
     passwordConfirm: 'Automotodrom3033!',
   });
@@ -88,7 +88,7 @@ const verifyOtp = async () => {
       const errorText = await otpResponse.text();
       throw new Error(errorText);
     }
-    const registerResponse = await fetch(`${SERVER}/users`, {
+    const registerResponse = await fetch(`${SERVER}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

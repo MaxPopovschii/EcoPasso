@@ -6,7 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Image,
@@ -39,21 +39,28 @@ export default function ProfileScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [avatar, setAvatar] = useState<string | undefined>(user?.avatar);
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
 
   const fetchUserData = async () => {
+    
     try {
-      const response = await fetch(`${SERVER}/users/${user?.email}`);
+      const response = await fetch(`${SERVER}/users/${user?.email}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
       if (!response.ok) throw new Error('Errore nel caricamento dei dati');
-      const data = await response.json();
-      setFormData({
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        email: data.email || ''
-      });
-      setAvatar(data.avatar);
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log('Dati ricevuti:', data);
+        setFormData(data);
+      } else {
+        const text = await response.text();
+        console.warn('Risposta non JSON:', text);
+      }
+      //setAvatar(data.avatar);
     } catch (error) {
       Alert.alert('Errore', 'Impossibile caricare i dati utente');
     }
@@ -228,7 +235,6 @@ export default function ProfileScreen() {
               <MaterialIcons name="camera-alt" size={16} color="#fff" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.userName}>{formData.firstName} {formData.lastName}</Text>
           <Text style={styles.userEmail}>{formData.email}</Text>
         </View>
 
@@ -241,7 +247,7 @@ export default function ProfileScreen() {
             onPress={() => setModalVisible(true)}
           >
             <MaterialIcons name="edit" size={24} color="#4CAF50" />
-            <Text style={styles.menuText}>Modifica Profilo</Text>
+            <Text >Modifica Profilo</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -251,7 +257,7 @@ export default function ProfileScreen() {
             }}
           >
             <MaterialIcons name="logout" size={24} color="#ff5252" />
-            <Text style={[styles.menuText, { color: '#ff5252' }]}>Logout</Text>
+            <Text style={[ { color: '#ff5252' }]}>Logout</Text>
           </TouchableOpacity>
         </ScrollView>
 

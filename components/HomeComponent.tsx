@@ -1,3 +1,4 @@
+import ActivityTypes from '@/constants/ActivityTypes';
 import SERVER from '@/constants/Api';
 import { useAuthContext } from '@/utils/authContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -65,20 +66,30 @@ export const HomeComponent = () => {
     }
 
     try {
-      // Prima creiamo l'Activity
+      let id;
+      ActivityTypes.forEach(item => {
+        if (item.value == billType) {
+          id = item.key
+        }
+      })
       const activityData = {
-        user: {
-          email: user?.email
-        },
-        activityType: {
-          id: 2  // ID per le attività domestiche
-        },
-        insertionDate: new Date().toISOString(),
+        userEmail: user?.email,
+        activityTypeId: id,
+        data: [
+          {
+            field_name: 'startDate',
+            field_value: startDate,
+          },
+          {
+            field_name: 'startDate',
+            field_value: startDate,
+          }
+        ],
         notes: `Consumo ${billType}: ${consumption} ${getUnit()} dal ${formatDate(startDate)} al ${formatDate(endDate)}`
       };
 
       // Chiamata per creare l'Activity
-      const activityResponse = await fetch(`${SERVER}/api/activities`, {
+      const activityResponse = await fetch(`${SERVER}/activities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,36 +103,8 @@ export const HomeComponent = () => {
       }
 
       const activityResult = await activityResponse.json();
-
-      // Ora creiamo la HomeActivity
-      const homeActivityData = {
-        activity: {
-          id: activityResult.id
-        },
-        utilityType: billType,
-        consumption: parseFloat(consumption),
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString()
-      };
-
-      const homeResponse = await fetch(`${SERVER}/api/home-activities/new`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(homeActivityData),
-      });
-
-      const homeData = await homeResponse.json();
-      
-      if (homeResponse.ok) {
-        Alert.alert("Successo", "Consumo registrato con successo!");
-        // Reset dei campi
-        handleReset();
-      } else {
-        throw new Error(homeData.message || 'Errore nel salvataggio del consumo');
-      }
-
+      Alert.alert(activityResult);
+      handleReset();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
       Alert.alert("Errore", "Impossibile salvare il consumo: " + errorMessage);
