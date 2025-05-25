@@ -13,10 +13,10 @@ export const HomeComponent = () => {
   const [open, setOpen] = useState(false);
   const [billType, setBillType] = useState(null);
   const [billTypeItems, setBillTypeItems] = useState([
-    { label: 'Luce (kWh)', value: 'electricity' },
-    { label: 'Gas (m³)', value: 'gas' },
-    { label: 'Acqua (m³)', value: 'water' },
-  ]);
+    { label: 'Luce (kWh)', value: 'Luce' },
+    { label: 'Gas (m³)', value: 'Gas' },
+    { label: 'Acqua (m³)', value: 'Acqua' },
+]);
 
   const [consumption, setConsumption] = useState('');
   
@@ -28,7 +28,7 @@ export const HomeComponent = () => {
   const {token} = useAuthContext();
   // Funzione per ottenere l'unità di misura corretta
   const getUnit = () => {
-    if (billType === 'electricity') {
+    if (billType === 'Luce') {
       return 'kWh';
     } else {
       return 'm³';
@@ -75,17 +75,17 @@ export const HomeComponent = () => {
       const activityData = {
         userEmail: user?.email,
         activityTypeId: id,
-        data: [
-          {
-            field_name: 'startDate',
-            field_value: startDate,
-          },
-          {
-            field_name: 'startDate',
-            field_value: startDate,
-          }
-        ],
-        notes: `Consumo ${billType}: ${consumption} ${getUnit()} dal ${formatDate(startDate)} al ${formatDate(endDate)}`
+      data: [
+        {
+          field_name: 'startDate',
+          field_value: startDate.toISOString(),
+        },
+        {
+          field_name: 'endDate',
+          field_value: endDate.toISOString(),
+        }
+      ],
+        note: `Consumo ${billType}: ${consumption} ${getUnit()} dal ${formatDate(startDate)} al ${formatDate(endDate)}`
       };
 
       // Chiamata per creare l'Activity
@@ -103,7 +103,8 @@ export const HomeComponent = () => {
       }
 
       const activityResult = await activityResponse.json();
-      Alert.alert(activityResult);
+        Alert.alert("Successo", activityResult.message || "Consumo salvato con successo!");
+
       handleReset();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
