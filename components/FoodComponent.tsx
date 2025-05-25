@@ -1,101 +1,114 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Button, Alert } from 'react-native';
-import RNPickerSelect from 'react-native-picker-select'; // Per scegliere il tipo di cibo
+import { View, Text, TextInput, StyleSheet, Button, Alert } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import ActivityTypes from '@/constants/ActivityTypes';
+import SERVER from '@/constants/Api';
+import { useAuthContext } from '@/utils/authContext';
 
 export const FoodComponent = () => {
-  const [mealType, setMealType] = useState('');
-  const [foodType, setFoodType] = useState('');
+  const { user, token } = useAuthContext();
+
+  const [openFood, setOpenFood] = useState(false);
+  const [foodType, setFoodType] = useState(null);
+  const [foodItems, setFoodItems] = useState([
+    { label: 'Carne', value: 'Carne' },
+    { label: 'Vegetariano', value: 'Vegetariano' },
+  ]);
+
+  const [meal, setMeal] = useState('');
+  const [dishName, setDishName] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [dish, setDish] = useState('');
-  const [consumptionDate, setConsumptionDate] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Opzioni per il tipo di pasto
-  const mealOptions = [
-    { label: 'Colazione', value: 'colazione' },
-    { label: 'Pranzo', value: 'pranzo' },
-    { label: 'Cena', value: 'cena' },
-  ];
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) setDate(selectedDate);
+  };
 
-  // Opzioni per il tipo di cibo
-  const foodTypeOptions = [
-    { label: 'Frutta', value: 'frutta' },
-    { label: 'Verdura', value: 'verdura' },
-    { label: 'Carne', value: 'carne' },
-    { label: 'Latticini', value: 'latticini' },
-    { label: 'Cereali', value: 'cereali' },
-    { label: 'Altro', value: 'altro' },
-  ];
+  const formatDate = (date) => date.toISOString().split('T')[0];
 
   const handleSubmit = async () => {
-    if (!mealType || !foodType || !quantity || isNaN(parseFloat(quantity)) || parseFloat(quantity) <= 0 || !dish) {
-      Alert.alert("Errore", "Per favore compila tutti i campi correttamente.");
+    if (!foodType || !dishName || !quantity || isNaN(parseFloat(quantity)) || parseFloat(quantity) <= 0 || !meal) {
+      Alert.alert("Errore", "Compila tutti i campi correttamente.");
       return;
     }
 
+    const activityType = ActivityTypes.find(item => item.value.toLowerCase() === foodType.toLowerCase());
+    if (!activityType) {
+      Alert.alert("Errore", "Tipo alimento non riconosciuto in ActivityTypes.");
+      return;
+    }
+
+    const payload = {
+      userEmail: user?.email,
+      activityTypeId: activityType.key,
+      note: `Hai mangiato ${dishName} (${quantity}g) a ${meal}`,
+      data: [
+        { field_name: 'meal_type', field_value: meal },
+        { field_name: 'quantity', field_value: quantity },
+        { field_name: 'consumption_date', field_value: formatDate(date) },
+      ]
+    };
+
     try {
-      const response = await fetch('https://tuo-server-api.com/food-entry', {
+      const response = await fetch(`${SERVER}/activities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          mealType,
-          foodType,
-          dish,
-          quantity: parseFloat(quantity),
-          consumptionDate,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const resData = await response.json();
       if (!response.ok) {
-        Alert.alert("Errore", "Si è verificato un errore durante l'invio dei dati.");
-      } else {
-        Alert.alert("Successo", "I dati sono stati inviati correttamente.");
+        throw new Error(resData.message || 'Errore nell\'invio dei dati');
       }
+
+      Alert.alert("Successo", "Attività alimentare salvata.");
+      handleReset();
     } catch (error) {
-      console.error(error);
-      Alert.alert("Errore", "Impossibile raggiungere il server.");
+      Alert.alert("Errore", error.message || 'Errore sconosciuto');
     }
   };
 
   const handleReset = () => {
-    setMealType('');
-    setFoodType('');
+    setFoodType(null);
+    setDishName('');
     setQuantity('');
-    setDish('');
-    setConsumptionDate('');
+    setMeal('');
+    setDate(new Date());
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Inserisci Pasti e Cibo</Text>
+      <Text style={styles.header}>Inserisci Pasto</Text>
 
-      {/* Seleziona il tipo di pasto */}
-      <RNPickerSelect
-        style={pickerSelectStyles}
-        onValueChange={(value) => setMealType(value)}
-        items={mealOptions}
-        placeholder={{ label: 'Seleziona tipo di pasto...', value: null }}
-      />
+      {/* Dropdown allineato */}
+      <View style={styles.inputWrapper}>
+        <DropDownPicker
+          open={openFood}
+          value={foodType}
+          items={foodItems}
+          setOpen={setOpenFood}
+          setValue={setFoodType}
+          setItems={setFoodItems}
+          placeholder="Seleziona tipo di alimento"
+          style={styles.dropdown}
+          dropDownContainerStyle={styles.dropdownList}
+          listMode="MODAL"
+        />
+      </View>
 
-      {/* Seleziona il tipo di cibo */}
-      <RNPickerSelect
-        style={pickerSelectStyles}
-        onValueChange={(value) => setFoodType(value)}
-        items={foodTypeOptions}
-        placeholder={{ label: 'Seleziona tipo di cibo...', value: null }}
-      />
-
-      {/* Nome del piatto */}
       <TextInput
         style={styles.input}
-        placeholder="Nome del piatto"
-        value={dish}
-        onChangeText={setDish}
+        placeholder="Nome piatto"
+        value={dishName}
+        onChangeText={setDishName}
       />
 
-      {/* Quantità */}
       <TextInput
         style={styles.input}
         placeholder="Quantità (grammi)"
@@ -104,48 +117,81 @@ export const FoodComponent = () => {
         onChangeText={setQuantity}
       />
 
-      {/* Data di consumo (opzionale) */}
       <TextInput
         style={styles.input}
-        placeholder="Data di consumo (opzionale)"
-        value={consumptionDate}
-        onChangeText={setConsumptionDate}
+        placeholder="Tipo pasto (es. pranzo)"
+        value={meal}
+        onChangeText={setMeal}
       />
 
-      {/* Bottone Invia */}
-      <Button title="Invia" onPress={handleSubmit} />
+      <View style={styles.dateRow}>
+        <Text style={{ marginRight: 10 }}>Data consumo:</Text>
+        <Button title={formatDate(date)} onPress={() => setShowDatePicker(true)} />
+        {showDatePicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+          />
+        )}
+      </View>
 
-      {/* Bottone Reset */}
-      <Button title="Reset" onPress={handleReset} color="gray" />
+      <View style={styles.buttonRow}>
+        <Button title="Salva" onPress={handleSubmit} color="#4CAF50" />
+        <View style={{ width: 10 }} />
+        <Button title="Reset" onPress={handleReset} color="gray" />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  header: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
-  input: { width: '80%', padding: 10, borderWidth: 1, borderRadius: 5, marginBottom: 15 },
-});
-
-const pickerSelectStyles = StyleSheet.create({
-  inputAndroid: {
+  container: {
+    marginTop: 80,
+    alignItems: 'center',
+    padding: 20
+  },
+  header: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 25
+  },
+  inputWrapper: {
+    width: '80%',
+    marginBottom: 20,
+    zIndex: 1000
+  },
+  dropdown: {
+    borderColor: '#ccc',
+    backgroundColor: '#fff'
+  },
+  dropdownList: {
+    borderColor: '#ccc',
+    backgroundColor: '#fff'
+  },
+  input: {
     width: '80%',
     padding: 10,
     borderWidth: 1,
     borderRadius: 5,
     marginBottom: 15,
-    backgroundColor: '#fff',
     borderColor: '#ccc',
+    backgroundColor: '#fff'
   },
-  inputIOS: {
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     width: '80%',
-    padding: 10,
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    borderColor: '#ccc',
-  },
+    marginTop: 10
+  }
 });
 
 export default FoodComponent;
+
+

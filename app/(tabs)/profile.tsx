@@ -30,7 +30,7 @@ interface FormState {
 
 export default function ProfileScreen() {
   const { user, setToken, token } = useAuthContext();
-  const {logout} = useAuth();
+  const { logout } = useAuth();
   const [formData, setFormData] = useState<FormState>({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -41,14 +41,14 @@ export default function ProfileScreen() {
 
 
   const fetchUserData = async () => {
-    
+
     try {
       const response = await fetch(`${SERVER}/users/${user?.email}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-          },
-        }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      }
       );
       if (!response.ok) throw new Error('Errore nel caricamento dei dati');
       const contentType = response.headers.get('content-type');
@@ -69,7 +69,7 @@ export default function ProfileScreen() {
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Permessi negati',
@@ -106,7 +106,7 @@ export default function ProfileScreen() {
 
       const selectedAsset = result.assets[0];
       setAvatar(selectedAsset.uri);
-      
+
       // Create form data for upload
       const formData = new FormData();
       formData.append('avatar', {
@@ -143,7 +143,7 @@ export default function ProfileScreen() {
         'Errore selezione immagine',
         'Non è stato possibile accedere alla galleria. Verifica che l\'app abbia i permessi necessari.',
         [
-          { 
+          {
             text: 'OK',
             style: 'default'
           },
@@ -195,10 +195,10 @@ export default function ProfileScreen() {
       });
 
       if (!response.ok) throw new Error('Errore nell\'aggiornamento');
-      
+
       Alert.alert('Successo', 'Profilo aggiornato con successo');
       setModalVisible(false);
-      
+
       // Clear password fields
       setFormData(prev => ({
         ...prev,
@@ -218,8 +218,8 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient 
-        colors={['#4CAF50', '#2196F3']} 
+      <LinearGradient
+        colors={['#4CAF50', '#2196F3']}
         style={styles.mainGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
@@ -238,7 +238,7 @@ export default function ProfileScreen() {
           <Text style={styles.userEmail}>{formData.email}</Text>
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
         >
@@ -257,7 +257,7 @@ export default function ProfileScreen() {
             }}
           >
             <MaterialIcons name="logout" size={24} color="#ff5252" />
-            <Text style={[ { color: '#ff5252' }]}>Logout</Text>
+            <Text style={[{ color: '#ff5252' }]}>Logout</Text>
           </TouchableOpacity>
         </ScrollView>
 
@@ -267,7 +267,7 @@ export default function ProfileScreen() {
         >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Modifica Profilo</Text>
-            
+
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}

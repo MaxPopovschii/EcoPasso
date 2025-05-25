@@ -33,29 +33,29 @@ export default function RootLayout() {
             headerShadowVisible: false,
             animation: 'slide_from_right',
           }}>
-            <Stack.Screen 
-              name="(tabs)" 
-              options={{ headerShown: false }} 
+            <Stack.Screen
+              name="(tabs)"
+              options={{ headerShown: false }}
             />
-            <Stack.Screen 
-              name="index" 
-              options={{ headerShown: false }} 
+            <Stack.Screen
+              name="index"
+              options={{ headerShown: false }}
             />
-            <Stack.Screen 
+            <Stack.Screen
               name="login"
               options={{
                 title: 'Accedi',
                 presentation: 'modal',
               }}
             />
-            <Stack.Screen 
+            <Stack.Screen
               name="registration"
               options={{
                 title: 'Registrati',
                 presentation: 'modal',
               }}
             />
-            <Stack.Screen 
+            <Stack.Screen
               name="+not-found"
               options={{
                 title: 'Pagina non trovata',
@@ -63,10 +63,10 @@ export default function RootLayout() {
               }}
             />
           </Stack>
-          <StatusBar 
-            style={colorScheme === 'dark' ? 'light' : 'dark'} 
-            backgroundColor="transparent" 
-            translucent 
+          <StatusBar
+            style={colorScheme === 'dark' ? 'light' : 'dark'}
+            backgroundColor="transparent"
+            translucent
           />
         </View>
       </ThemeProvider>
