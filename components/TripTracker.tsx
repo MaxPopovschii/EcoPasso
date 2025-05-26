@@ -1,19 +1,20 @@
+import SERVER from '@/constants/Api';
+import { useAuthContext } from '@/utils/authContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import haversine from 'haversine';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
-    AppState,
-    AppStateStatus,
-    Button,
-    Modal,
-    Picker,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  Alert,
+  AppState,
+  AppStateStatus,
+  Button,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 
 type LocationPoint = {
@@ -43,7 +44,8 @@ export default function TripTracker() {
   const lastMoveTime = useRef<number>(Date.now());
   const locationSub = useRef<Location.LocationSubscription | null>(null);
   const checkInterval = useRef<NodeJS.Timer | null>(null);
-
+  const {token} = useAuthContext();
+  
   useEffect(() => {
     startTracking();
     registerNotifications();
@@ -159,10 +161,11 @@ export default function TripTracker() {
   };
 
   const sendTripToServer = async (data: TripData) => {
-    const res = await fetch('https://your-api.com/eco/activities', {
+    const res = await fetch(`${SERVER}/eco/activities`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });

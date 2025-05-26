@@ -56,6 +56,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/haversine": "^1.1.8",
     "@types/jwt-decode": "^2.2.1",
     "@types/react": "~19.0.10",
     "@types/react-native-maps": "^0.24.1",
