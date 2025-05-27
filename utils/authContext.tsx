@@ -1,5 +1,5 @@
 import { jwtDecode } from 'jwt-decode';
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 
 
@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           firstName: decodedToken.firstName,
           lastName: decodedToken.lastName,
           email: decodedToken.email,
-          avatar: decodedToken.avatar || 'https://gravatar.com/avatar/550b2b96687c4db387aa4350676170dd?s=400&d=robohash&r=x', // Avatar di default se non presente
+          avatar: decodedToken.avatar ?? 'https://gravatar.com/avatar/550b2b96687c4db387aa4350676170dd?s=400&d=robohash&r=x', // Avatar di default se non presente
         });
       } catch (error) {
         console.error('Errore nella decodifica del token:', error);
@@ -42,8 +42,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [token]);
 
+  const contextValue = React.useMemo(() => ({ token, user, setToken }), [token, user, setToken]);
+
   return (
-    <AuthContext.Provider value={{ token, user, setToken }}>
+    <AuthContext.Provider value={contextValue}>
       {children} 
     </AuthContext.Provider>
   );

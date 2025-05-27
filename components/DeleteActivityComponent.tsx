@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Alert, Button, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
+import ActivityTypes from '@/constants/ActivityTypes';
 import SERVER from '@/constants/Api';
 import { useAuthContext } from '@/utils/authContext';
-import ActivityTypes from '@/constants/ActivityTypes';
+import { MaterialIcons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 const DeleteActivityComponent = () => {
     const { user, token } = useAuthContext();
@@ -28,12 +29,12 @@ const DeleteActivityComponent = () => {
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Errore nel recupero attività");
+            if (!res.ok) throw new Error(data.message ?? "Errore nel recupero attività");
 
             const filtered = data.filter(act => act.activityTypeId === category);
             setActivities(filtered);
         } catch (err) {
-            Alert.alert("Errore", err.message || "Errore imprevisto");
+            Alert.alert("Errore", err.message ?? "Errore imprevisto");
         } finally {
             setLoading(false);
         }
@@ -44,23 +45,26 @@ const DeleteActivityComponent = () => {
             { text: "Annulla", style: "cancel" },
             {
                 text: "Elimina",
-                onPress: async () => {
-                    try {
-                        const res = await fetch(`${SERVER}/activities/${id}`, {
-                            method: 'DELETE',
-                            headers: {
-                                Authorization: `Bearer ${token}`,
-                            },
-                        });
+                style: "destructive",
+                onPress: () => {
+                    (async () => {
+                        try {
+                            const res = await fetch(`${SERVER}/activities/${id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    Authorization: `Bearer ${token}`,
+                                },
+                            });
 
-                        const result = await res.json();
-                        if (!res.ok) throw new Error(result.message || 'Errore nella cancellazione');
+                            const result = await res.json();
+                            if (!res.ok) throw new Error(result.message ?? 'Errore nella cancellazione');
 
-                        Alert.alert("Eliminata", "Attività eliminata correttamente.");
-                        fetchActivities(); // Refresh lista
-                    } catch (err) {
-                        Alert.alert("Errore", err.message || "Errore sconosciuto");
-                    }
+                            Alert.alert("Eliminata", "Attività eliminata correttamente.");
+                            fetchActivities(); // Refresh lista
+                        } catch (err) {
+                            Alert.alert("Errore", err.message ?? "Errore sconosciuto");
+                        }
+                    })();
                 }
             }
         ]);
@@ -85,30 +89,41 @@ const DeleteActivityComponent = () => {
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownList}
                 listMode="MODAL"
+                zIndex={1000}
+                zIndexInverse={1000}
             />
 
-            {loading && <ActivityIndicator style={{ marginTop: 20 }} />}
+            {loading && <ActivityIndicator style={{ marginTop: 30 }} size="large" color="#4CAF50" />}
 
             {!loading && activities.length > 0 && (
                 <FlatList
                     data={activities}
                     keyExtractor={(item) => item.id.toString()}
-                    contentContainerStyle={{ marginTop: 20 }}
+                    contentContainerStyle={{ marginTop: 24, paddingBottom: 24 }}
                     renderItem={({ item }) => (
                         <View style={styles.activityCard}>
-                            <Text style={styles.note}>{item.note}</Text>
-                            <Button
-                                title="Elimina"
-                                onPress={() => deleteActivity(item.id)}
-                                color="#E53935"
-                            />
+                            <View style={styles.cardContent}>
+                                <MaterialIcons name="event-note" size={28} color="#2196F3" style={{ marginRight: 12 }} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.note} numberOfLines={2}>{item.note}</Text>
+                                    <Text style={styles.date}>{item.date ? new Date(item.date).toLocaleDateString() : ''}</Text>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.deleteBtn}
+                                    onPress={() => deleteActivity(item.id)}
+                                    accessibilityLabel="Elimina attività"
+                                    accessibilityRole="button"
+                                >
+                                    <MaterialIcons name="delete" size={24} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     )}
                 />
             )}
 
             {!loading && category && activities.length === 0 && (
-                <Text style={{ marginTop: 20, color: 'gray' }}>Nessuna attività trovata per questa categoria.</Text>
+                <Text style={styles.emptyText}>Nessuna attività trovata per questa categoria.</Text>
             )}
         </View>
     );
@@ -116,36 +131,71 @@ const DeleteActivityComponent = () => {
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: 60,
+        marginTop: 40,
         paddingHorizontal: 20,
-        alignItems: 'center'
+        alignItems: 'center',
+        flex: 1,
     },
     header: {
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: 'bold',
-        marginBottom: 20
+        marginBottom: 24,
+        color: '#2196F3',
+        letterSpacing: 1,
     },
     dropdown: {
         width: '100%',
-        marginBottom: 15,
-        borderColor: '#ccc',
+        marginBottom: 18,
+        borderColor: '#4CAF50',
+        borderRadius: 12,
+        backgroundColor: '#f8f8f8',
     },
     dropdownList: {
         width: '100%',
-        borderColor: '#ccc',
+        borderColor: '#4CAF50',
+        borderRadius: 12,
     },
     activityCard: {
-        backgroundColor: '#f9f9f9',
-        padding: 15,
-        marginBottom: 10,
-        borderRadius: 8,
+        backgroundColor: '#fff',
+        padding: 16,
+        marginBottom: 14,
+        borderRadius: 14,
         width: '100%',
-        elevation: 2
+        elevation: 3,
+        shadowColor: '#2196F3',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+    },
+    cardContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     note: {
-        marginBottom: 8,
-        fontSize: 14
-    }
+        fontSize: 16,
+        color: '#333',
+        marginBottom: 4,
+        fontWeight: '500',
+    },
+    date: {
+        fontSize: 13,
+        color: '#888',
+    },
+    deleteBtn: {
+        backgroundColor: '#E53935',
+        borderRadius: 24,
+        padding: 8,
+        marginLeft: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 2,
+    },
+    emptyText: {
+        marginTop: 40,
+        color: '#888',
+        fontSize: 16,
+        textAlign: 'center',
+    },
 });
 
 export default DeleteActivityComponent;

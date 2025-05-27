@@ -1,3 +1,5 @@
+import SERVER from '@/constants/Api';
+import { useAuthContext } from '@/utils/authContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -16,6 +18,7 @@ interface Statistics {
 }
 
 const HomePageComponent: React.FC<HomePageProps> = ({ email, avatar }) => {
+  const { token } = useAuthContext();
   const [statistics, setStatistics] = useState<Statistics>({ monthly: [], yearly: [] });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -31,31 +34,33 @@ const HomePageComponent: React.FC<HomePageProps> = ({ email, avatar }) => {
 
   useEffect(() => {
     const fetchStatistics = async () => {
+      setIsLoading(true);
       try {
-        // Mock data instead of actual API call
-        const mockData = {
-          monthly: [120, 150, 180, 90, 100, 160, 140, 130, 170, 190, 200, 160], // Dati mensili finti
-          yearly: [1500, 1600, 1750, 1800, 1900] // Dati annuali finti
-        };
-
-        // Simuliamo un ritardo di caricamento per mostrare lo spinner
-        setTimeout(() => {
-          setStatistics(mockData);
-          setIsLoading(false);
-        }, 1000);
-
+        const response = await fetch(`${SERVER}/statistics/${email}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        });
+        if (!response.ok) throw new Error('Errore nel recupero delle statistiche');
+        const data = await response.json();
+        setStatistics({
+          monthly: Array.isArray(data.monthly) ? data.monthly : new Array(12).fill(0),
+          yearly: Array.isArray(data.yearly) ? data.yearly : [],
+        });
       } catch (error) {
-        console.error('Errore:', error);
+        console.error('Failed to fetch statistics:', error);
         setStatistics({
           monthly: new Array(12).fill(0),
           yearly: new Array(5).fill(0)
         });
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchStatistics();
-  }, [email]);
+  }, [email, token]);
 
   if (isLoading) {
     return (
@@ -69,7 +74,10 @@ const HomePageComponent: React.FC<HomePageProps> = ({ email, avatar }) => {
     <ScrollView style={styles.container}>
       <LinearGradient colors={['#4CAF50', '#2196F3']} style={styles.gradientBackground}>
         <View style={styles.header}>
-          <Image source={{ uri: avatar }} style={styles.avatar} />
+          <Image
+            source={avatar ? { uri: avatar } : require('@/assets/avatar-placeholder.png')}
+            style={styles.avatar}
+          />
           <Text style={styles.userName}>{email}</Text>
         </View>
 
@@ -99,7 +107,7 @@ const HomePageComponent: React.FC<HomePageProps> = ({ email, avatar }) => {
               <Text style={styles.chartTitle}>Statistiche Annuali</Text>
               <BarChart
                 data={{
-                  labels: Array.from({ length: 5 }, (_, i) => `${getCurrentYear() - 4 + i}`),
+                  labels: Array.from({ length: statistics.yearly.length }, (_, i) => `${getCurrentYear() - statistics.yearly.length + 1 + i}`),
                   datasets: [{
                     data: statistics.yearly
                   }]
@@ -132,7 +140,7 @@ const HomePageComponent: React.FC<HomePageProps> = ({ email, avatar }) => {
 const chartConfig = {
   backgroundGradientFrom: '#ffffff',
   backgroundGradientTo: '#ffffff',
-  color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, // Using theme green color
+  color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
   strokeWidth: 3,
   barPercentage: 0.7,
@@ -176,6 +184,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    backgroundColor: '#e0e0e0',
   },
   userName: {
     marginTop: 10,

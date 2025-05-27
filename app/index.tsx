@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Platform, StyleSheet, Text, View } from 'react-native';
 import { Button } from 'react-native-paper';
 
 const { width } = Dimensions.get('window');
@@ -17,15 +17,14 @@ const HomeScreen: React.FC = () => {
     >
       <View style={styles.container}>
         <View style={styles.logoContainer}>
-          <MaterialCommunityIcons name="leaf" size={80} color="#fff" />
+          <MaterialCommunityIcons name="leaf" size={80} color="#fff" accessibilityLabel="Logo EcoPasso" />
         </View>
 
         <View style={styles.contentContainer}>
-          <Text style={styles.title}>EcoPasso</Text>
+          <Text style={styles.title} accessibilityRole="header">EcoPasso</Text>
           <Text style={styles.subtitle}>
             Il tuo percorso verso un futuro sostenibile
           </Text>
-          
           <Text style={styles.infoText}>
             Unisciti alla nostra community e inizia a monitorare il tuo impatto ambientale.
             Insieme possiamo fare la differenza per il nostro pianeta.
@@ -36,12 +35,14 @@ const HomeScreen: React.FC = () => {
           <Button
             mode="contained"
             icon={({ size, color }) => (
-              <MaterialCommunityIcons name="login" size={size} color={color} />
+              <MaterialCommunityIcons name="login" size={size} color={Platform.OS === 'android' ? '#4CAF50' : color} />
             )}
             onPress={() => router.push("/login")}
             style={styles.button}
             contentStyle={styles.buttonContent}
             labelStyle={styles.buttonText}
+            accessibilityLabel="Accedi"
+            accessibilityRole="button"
           >
             Accedi
           </Button>
@@ -49,19 +50,21 @@ const HomeScreen: React.FC = () => {
           <Button
             mode="outlined"
             icon={({ size, color }) => (
-              <MaterialCommunityIcons name="account-plus" size={size} color={color} />
+              <MaterialCommunityIcons name="account-plus" size={size} color="#fff" />
             )}
             onPress={() => router.push("/registration")}
             style={[styles.button, styles.registerButton]}
             contentStyle={styles.buttonContent}
             labelStyle={[styles.buttonText, styles.registerButtonText]}
+            accessibilityLabel="Registrati"
+            accessibilityRole="button"
           >
             Registrati
           </Button>
         </View>
 
         <View style={styles.footer}>
-          <MaterialCommunityIcons name="earth" size={24} color="rgba(255,255,255,0.6)" />
+          <MaterialCommunityIcons name="earth" size={24} color="rgba(255,255,255,0.6)" accessibilityLabel="Icona Terra" />
           <Text style={styles.footerText}>© 2025 EcoPasso</Text>
         </View>
       </View>
@@ -111,8 +114,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     lineHeight: 24,
-    opacity: 0.8,
-    maxWidth: width * 0.8,
+    opacity: 0.85,
+    maxWidth: width * 0.85,
+    marginBottom: 8,
   },
   buttonContainer: {
     width: '100%',
@@ -120,9 +124,13 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   button: {
-    borderRadius: 12,
+    borderRadius: 14,
     elevation: 4,
     backgroundColor: '#fff',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
   buttonContent: {
     height: 56,

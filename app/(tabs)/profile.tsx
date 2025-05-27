@@ -6,7 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -29,7 +29,7 @@ interface FormState {
 }
 
 export default function ProfileScreen() {
-  const { user, setToken, token } = useAuthContext();
+  const { user, token } = useAuthContext();
   const { logout } = useAuth();
   const [formData, setFormData] = useState<FormState>({
     firstName: user?.firstName || '',
@@ -39,29 +39,32 @@ export default function ProfileScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [avatar, setAvatar] = useState<string | undefined>(user?.avatar);
 
+  // Carica i dati utente all'avvio
+  useEffect(() => {
+    fetchUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchUserData = async () => {
-
     try {
-      const response = await fetch(`${SERVER}/users/${user?.email}`, {
+      const response = await fetch(`${SERVER}/api/users/${user?.email}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
         },
-      }
-      );
+      });
       if (!response.ok) throw new Error('Errore nel caricamento dei dati');
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         const data = await response.json();
-        console.log('Dati ricevuti:', data);
         setFormData(data);
+        if (data.avatar) setAvatar(data.avatar);
       } else {
         const text = await response.text();
         console.warn('Risposta non JSON:', text);
       }
-      //setAvatar(data.avatar);
     } catch (error) {
+      console.error('Errore nel caricamento dei dati utente:', error);
       Alert.alert('Errore', 'Impossibile caricare i dati utente');
     }
   };
@@ -74,9 +77,7 @@ export default function ProfileScreen() {
         Alert.alert(
           'Permessi negati',
           'Per favore abilita l\'accesso alle foto nelle impostazioni del dispositivo.',
-          [
-            { text: 'OK', style: 'default' }
-          ]
+          [{ text: 'OK', style: 'default' }]
         );
         return;
       }
@@ -88,18 +89,13 @@ export default function ProfileScreen() {
         quality: 0.8,
       });
 
-      if (result.canceled) {
-        // User cancelled image picker
-        return;
-      }
+      if (result.canceled) return;
 
       if (!result.assets || !result.assets[0]) {
         Alert.alert(
           'Errore',
           'Nessuna immagine selezionata. Per favore seleziona un\'immagine valida.',
-          [
-            { text: 'OK', style: 'default' }
-          ]
+          [{ text: 'OK', style: 'default' }]
         );
         return;
       }
@@ -107,9 +103,9 @@ export default function ProfileScreen() {
       const selectedAsset = result.assets[0];
       setAvatar(selectedAsset.uri);
 
-      // Create form data for upload
-      const formData = new FormData();
-      formData.append('avatar', {
+      // Upload avatar
+      const uploadData = new FormData();
+      uploadData.append('avatar', {
         uri: selectedAsset.uri,
         type: 'image/jpeg',
         name: 'profile-avatar.jpg',
@@ -122,36 +118,34 @@ export default function ProfileScreen() {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json',
           },
-          body: formData,
+          body: uploadData,
         });
 
-        if (!response.ok) {
-          throw new Error('Errore nel caricamento dell\'immagine');
-        }
+        if (!response.ok) throw new Error('Errore nel caricamento dell\'immagine');
+
+        // Aggiorna avatar dopo upload
+        const updated = await response.json();
+        if (updated.avatar) setAvatar(updated.avatar);
 
         Alert.alert('Successo', 'Avatar aggiornato con successo');
       } catch (uploadError) {
-        console.error('Upload error:', uploadError);
+        console.error('Errore durante l\'upload dell\'avatar:', uploadError);
         Alert.alert(
           'Errore',
           'Impossibile caricare l\'immagine sul server. L\'avatar verrà aggiornato solo localmente.'
         );
       }
-    } catch (error) {
-      console.error('Image picker error:', error);
+    } catch (error: any) {
+      if (error && error.code === 'E_PICKER_CANCELLED') {
+        // User cancelled the picker, do nothing
+        return;
+      }
       Alert.alert(
         'Errore selezione immagine',
         'Non è stato possibile accedere alla galleria. Verifica che l\'app abbia i permessi necessari.',
         [
-          {
-            text: 'OK',
-            style: 'default'
-          },
-          {
-            text: 'Riprova',
-            onPress: pickImage,
-            style: 'cancel'
-          }
+          { text: 'OK', style: 'default' },
+          { text: 'Riprova', onPress: pickImage, style: 'cancel' }
         ]
       );
     }
@@ -159,7 +153,7 @@ export default function ProfileScreen() {
 
   const handleUpdate = async () => {
     try {
-      // Validate passwords if attempting to change
+      // Validazione password
       if (formData.newPassword || formData.currentPassword || formData.confirmPassword) {
         if (!formData.currentPassword) {
           Alert.alert('Errore', 'Inserisci la password attuale');
@@ -199,7 +193,7 @@ export default function ProfileScreen() {
       Alert.alert('Successo', 'Profilo aggiornato con successo');
       setModalVisible(false);
 
-      // Clear password fields
+      // Pulisci i campi password
       setFormData(prev => ({
         ...prev,
         currentPassword: '',
@@ -207,14 +201,16 @@ export default function ProfileScreen() {
         confirmPassword: ''
       }));
     } catch (error) {
+      console.error('Errore durante l\'aggiornamento del profilo:', error);
       Alert.alert('Errore', 'Impossibile aggiornare il profilo');
     }
   };
+
   const handleLogout = () => {
     logout();
     router.back();
     router.back();
-  }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -247,17 +243,15 @@ export default function ProfileScreen() {
             onPress={() => setModalVisible(true)}
           >
             <MaterialIcons name="edit" size={24} color="#4CAF50" />
-            <Text >Modifica Profilo</Text>
+            <Text>Modifica Profilo</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => {
-              handleLogout();
-            }}
+            onPress={handleLogout}
           >
             <MaterialIcons name="logout" size={24} color="#ff5252" />
-            <Text style={[{ color: '#ff5252' }]}>Logout</Text>
+            <Text style={{ color: '#ff5252' }}>Logout</Text>
           </TouchableOpacity>
         </ScrollView>
 

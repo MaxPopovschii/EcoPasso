@@ -6,7 +6,6 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
-  Dimensions,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +17,6 @@ import {
   View
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
 
 interface LoginFormState {
   email: string;
@@ -27,12 +25,13 @@ interface LoginFormState {
 
 const LoginScreen: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormState>({
-    email: 'maxpopovschii@gmail.com',
-    password: 'Automotodrom3033!',
+    email: '',
+    password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const {setToken} = useAuthContext();
+  const { setToken } = useAuthContext();
 
   const handleChange = (name: keyof LoginFormState, value: string) => {
     setFormData({
@@ -42,6 +41,11 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleLogin = async () => {
+    if (!formData.email || !formData.password) {
+      Alert.alert('Attenzione', 'Inserisci email e password');
+      return;
+    }
+    setLoading(true);
     try {
       const response = await fetch(`${SERVER}/auth/login`, {
         method: "POST",
@@ -49,19 +53,26 @@ const LoginScreen: React.FC = () => {
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) throw new Error("Data error.");
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Email o password errati.");
+        }
+        throw new Error("Errore di rete o dati non validi.");
+      }
 
       const token = await response.text();
       setToken(token);
       router.navigate("/(tabs)");
     } catch (error) {
-      Alert.alert('Login Failed', (error as Error).message);
+      Alert.alert('Login fallito', (error as Error).message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <LinearGradient
-      colors={['#4CAF50', '#2196F3']} 
+      colors={['#4CAF50', '#2196F3']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
@@ -85,8 +96,12 @@ const LoginScreen: React.FC = () => {
                 style={styles.textInput}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
                 value={formData.email}
                 onChangeText={(text) => handleChange('email', text)}
+                accessibilityLabel="Campo email"
+                returnKeyType="next"
               />
             </View>
 
@@ -99,27 +114,42 @@ const LoginScreen: React.FC = () => {
                 secureTextEntry={!showPassword}
                 value={formData.password}
                 onChangeText={(text) => handleChange('password', text)}
+                accessibilityLabel="Campo password"
+                autoCapitalize="none"
+                autoComplete="password"
+                textContentType="password"
+                returnKeyType="done"
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.passwordToggle}
+                accessibilityLabel={showPassword ? "Nascondi password" : "Mostra password"}
+                accessibilityRole="button"
               >
-                <MaterialCommunityIcons 
-                  name={showPassword ? "eye-off" : "eye"} 
-                  size={24} 
-                  color="#fff" 
+                <MaterialCommunityIcons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color="#fff"
                 />
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.btnContainer} onPress={handleLogin}>
-              <Text style={styles.btnText}>Accedi</Text>
+            <TouchableOpacity
+              style={[styles.btnContainer, (!formData.email || !formData.password || loading) && { opacity: 0.6 }]}
+              onPress={handleLogin}
+              disabled={!formData.email || !formData.password || loading}
+              accessibilityRole="button"
+              accessibilityLabel="Accedi"
+            >
+              <Text style={styles.btnText}>{loading ? "Attendi..." : "Accedi"}</Text>
               <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.registerLink}
               onPress={() => router.push('/registration')}
+              accessibilityRole="button"
+              accessibilityLabel="Vai alla registrazione"
             >
               <Text style={styles.registerText}>
                 Non hai un account? <Text style={styles.registerHighlight}>Registrati</Text>
@@ -146,7 +176,6 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(10px)',
   },
   logoContainer: {
     alignItems: 'center',

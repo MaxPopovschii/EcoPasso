@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback } from 'react';
-import { Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import FoodComponent from '../FoodComponent';
 import HomeComponent from '../HomeComponent';
 import { OtherComponent } from '../OtherComponent';
@@ -67,54 +67,63 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ visible, category, onClos
   }, [category]);
 
   return (
-    <Modal 
-      visible={visible} 
-      transparent={true} 
+    <Modal
+      visible={visible}
+      transparent
       animationType="slide"
       onRequestClose={onClose}
+      accessible
+      accessibilityViewIsModal
+      accessibilityLabel={`Modal categoria ${category}`}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          <LinearGradient
-            colors={['#4CAF50', '#2196F3']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.headerGradient}
-          >
-            <View style={styles.headerContent}>
-              <MaterialIcons 
-                name={getCategoryIcon()} 
-                size={24} 
-                color="white" 
-              />
-              <Text style={styles.header}>
-                {category ? category.toUpperCase() : 'CATEGORIA'}
-              </Text>
-              <TouchableOpacity 
-                onPress={onClose} 
-                style={styles.closeIcon}
-                accessibilityLabel="Close modal"
+      <TouchableWithoutFeedback onPress={onClose} accessible={false}>
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.modalContainer}>
+              <LinearGradient
+                colors={['#4CAF50', '#2196F3']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.headerGradient}
               >
-                <MaterialIcons 
-                  name="close" 
-                  size={24} 
-                  color="white" 
-                />
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
+                <View style={styles.headerContent}>
+                  <MaterialIcons
+                    name={getCategoryIcon()}
+                    size={24}
+                    color="white"
+                    accessibilityLabel="Icona categoria"
+                  />
+                  <Text style={styles.header}>
+                    {category ? category.toUpperCase() : 'CATEGORIA'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={onClose}
+                    style={styles.closeIcon}
+                    accessibilityLabel="Chiudi modale"
+                    accessibilityRole="button"
+                  >
+                    <MaterialIcons
+                      name="close"
+                      size={24}
+                      color="white"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
 
-          <ScrollView 
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={true}
-            bounces={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {renderCategoryContent()}
-          </ScrollView>
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {renderCategoryContent()}
+              </ScrollView>
+            </View>
+          </TouchableWithoutFeedback>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
@@ -128,7 +137,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: '95%',
-    height: windowHeight * 0.9, // Fixed height instead of maxHeight
+    height: windowHeight * 0.9,
     backgroundColor: 'white',
     borderRadius: 15,
     overflow: 'hidden',
@@ -169,7 +178,7 @@ const styles = StyleSheet.create({
   },
   componentWrapper: {
     flex: 1,
-    minHeight: windowHeight * 0.5, // Ensure minimum height for components
+    minHeight: windowHeight * 0.5,
   },
   errorContainer: {
     flex: 1,

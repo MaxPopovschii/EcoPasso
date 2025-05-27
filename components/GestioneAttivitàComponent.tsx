@@ -1,20 +1,20 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 interface GestioneAttivitaProps {
-  onCategorySelect: (category: string) => void; // Funzione per gestire la selezione della categoria
+  onCategorySelect: (category: string) => void;
 }
 
-const GestioneAttivitaComponent: React.FC<GestioneAttivitaProps> = ({ onCategorySelect }) => {
-  const categories = [
-    { name: 'Trasporti', icon: 'bus' },
-    { name: 'Casa', icon: 'home' },
-    { name: 'Alimentazione', icon: 'food' },
-    { name: 'Altro', icon: 'dots-horizontal' },
-  ];
+const categories = [
+  { name: 'Trasporti', icon: 'bus' },
+  { name: 'Casa', icon: 'home' },
+  { name: 'Alimentazione', icon: 'food' },
+  { name: 'Altro', icon: 'dots-horizontal' },
+];
 
+const GestioneAttivitaComponent: React.FC<GestioneAttivitaProps> = ({ onCategorySelect }) => {
   return (
     <LinearGradient
       colors={['#4CAF50', '#2196F3']}
@@ -22,51 +22,30 @@ const GestioneAttivitaComponent: React.FC<GestioneAttivitaProps> = ({ onCategory
     >
       <View style={styles.container}>
         <Text style={styles.title}>Gestione Attività</Text>
-
-        <View style={styles.gridContainer}>
-          <TouchableOpacity
-                key={categories[0].name}
-                style={styles.button}
-                onPress={() => onCategorySelect(categories[0].name)}
-              >
-                <Icon name={categories[0].icon} size={60} color="#fff" />
-                <Text style={styles.buttonText}>{categories[0].name}</Text>
-              </TouchableOpacity>
-        </View>
-        <View style={styles.gridContainer}>
-          <TouchableOpacity
-                key={categories[1].name}
-                style={styles.button}
-                onPress={() => onCategorySelect(categories[1].name)}
-              >
-                <Icon name={categories[1].icon} size={60} color="#fff" />
-                <Text style={styles.buttonText}>{categories[1].name}</Text>
-              </TouchableOpacity>
-        </View>
-        <View style={styles.gridContainer}>
-          <TouchableOpacity
-                key={categories[2].name}
-                style={styles.button}
-                onPress={() => onCategorySelect(categories[2].name)}
-              >
-                <Icon name={categories[2].icon} size={60} color="#fff" />
-                <Text style={styles.buttonText}>{categories[2].name}</Text>
-              </TouchableOpacity>
-        </View>
-        <View style={styles.gridContainer}>
-          <TouchableOpacity
-                key={categories[3].name}
-                style={styles.button}
-                onPress={() => onCategorySelect(categories[3].name)}
-              >
-                <Icon name={categories[3].icon} size={60} color="#fff" />
-                <Text style={styles.buttonText}>{categories[3].name}</Text>
-              </TouchableOpacity>
+        <View style={styles.grid}>
+          {categories.map((cat) => (
+            <TouchableOpacity
+              key={cat.name}
+              style={styles.button}
+              onPress={() => onCategorySelect(cat.name)}
+              activeOpacity={0.85}
+              accessibilityLabel={`Seleziona categoria ${cat.name}`}
+              accessibilityRole="button"
+            >
+              <View style={styles.iconWrapper}>
+                <Icon name={cat.icon} size={48} color="#fff" />
+              </View>
+              <Text style={styles.buttonText}>{cat.name}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
     </LinearGradient>
   );
 };
+
+const { width } = Dimensions.get('window');
+const BUTTON_SIZE = width > 400 ? 140 : 110;
 
 const styles = StyleSheet.create({
   gradientBackground: {
@@ -74,38 +53,53 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    flexDirection:'row',
-    flexWrap:'wrap',
+    paddingTop: 40,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 20,
+    marginBottom: 28,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 1, height: 2 },
+    textShadowRadius: 4,
   },
-  gridContainer: {
+  grid: {
     flexDirection: 'row',
-    margin : 5,
-    alignSelf :'center',
-    justifyContent:'center',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 18,
   },
   button: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    width: 130,
-    height: 130,
-    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 15,
-    elevation: 5,
+    margin: 12,
+    elevation: 6,
+    shadowColor: '#2196F3',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.13,
+    shadowRadius: 6,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  iconWrapper: {
+    backgroundColor: 'rgba(76,175,80,0.18)',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 8,
   },
   buttonText: {
-    fontSize: 12,
+    fontSize: 15,
     color: '#fff',
-    marginTop: 5,
+    fontWeight: '600',
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
 });
 

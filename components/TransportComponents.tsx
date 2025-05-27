@@ -1,3 +1,5 @@
+import ActivityDataInterface from '@/constants/ActivityDataInterface';
+import ActivityTypes from '@/constants/ActivityTypes';
 import SERVER from '@/constants/Api';
 import { useAuthContext } from '@/utils/authContext';
 import React, { useState } from 'react';
@@ -5,13 +7,13 @@ import { Alert, Button, StyleSheet, Text, TextInput, View } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
-export const TransportComponent = () => {
-  const {user} = useAuthContext();
+const TransportComponent = () => {
+  const { user } = useAuthContext();
   const [startLocation, setStartLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [endLocation, setEndLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [routeType, setRouteType] = useState('one-way');
-  
-  // Stati per il dropdown-picker
+
+  // Dropdown state
   const [open, setOpen] = useState(false);
   const [transportType, setTransportType] = useState('car');
   const [transportItems, setTransportItems] = useState([
@@ -29,21 +31,20 @@ export const TransportComponent = () => {
     { label: 'GPL', value: 'lpg' },
     { label: 'Elettrico', value: 'electric' },
   ]);
+  const { token } = useAuthContext();
 
   const calculateDistance = (start: any, end: any): number => {
-    const R = 6371; // Raggio della Terra in km
+    const R = 6371;
     const dLat = (end.latitude - start.latitude) * Math.PI / 180;
     const dLon = (end.longitude - start.longitude) * Math.PI / 180;
-    
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(start.latitude * Math.PI / 180) * Math.cos(end.latitude * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return Number((R * c).toFixed(2)); // Distanza in km
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(start.latitude * Math.PI / 180) * Math.cos(end.latitude * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Number((R * c).toFixed(2));
   };
-  
+
   const handleMapPress = (e) => {
     if (!startLocation) {
       setStartLocation(e.nativeEvent.coordinate);
@@ -64,29 +65,66 @@ export const TransportComponent = () => {
     }
     return [];
   };
+
+  // Chiamata al server per salvare il percorso
   const calculateAndSaveRoute = async () => {
     if (!startLocation || !endLocation) {
       Alert.alert("Errore", "Seleziona prima i punti di partenza e arrivo");
       return;
     }
+    if (startLocation.latitude === endLocation.latitude && startLocation.longitude === endLocation.longitude) {
+      Alert.alert("Errore", "I punti di partenza e arrivo non possono essere gli stessi");
+      return;
+    }
 
+    if (passengerCount < 1) {
+      Alert.alert("Errore", "Il numero di passeggeri deve essere almeno 1");
+      return;
+    }
+    if (transportType === 'car' && !fuelType) {
+      Alert.alert("Errore", "Seleziona un tipo di carburante per il trasporto in auto");
+      return;
+    }
+    if (!routeType) {
+      Alert.alert("Errore", "Seleziona un tipo di percorso (Andata o Andata/Ritorno)");
+      return;
+    }
+    if (!user?.email) {
+      Alert.alert("Errore", "Devi essere autenticato per salvare il percorso");
+      return;
+    }
+    if (!transportType) {
+      Alert.alert("Errore", "Seleziona un tipo di trasporto");
+      return;
+    }
     try {
-      const activityData = {
-        user: {
-          email: user?.email  // Aggiungiamo l'email dell'utente
-        },
-        activityType: {
-          id: 3  // ID per le attività di trasporto
-        },
-        insertionDate: new Date().toISOString(),
-        notes: `Viaggio da ${startLocation.latitude},${startLocation.longitude} a ${endLocation.latitude},${endLocation.longitude}`
+      const foundType = ActivityTypes.find(item => item.value.toLowerCase() === transportType.toLowerCase());
+      if (!foundType) {
+        Alert.alert("Errore", "Tipo di trasporto non riconosciuto.");
+        return;
+      }
+
+      const activityData: ActivityDataInterface = {
+        userEmail: user?.email,
+        activityTypeId: foundType.key,
+        data: [
+          { field_name: 'startLocation', field_value: `${startLocation.latitude},${startLocation.longitude}` },
+          { field_name: 'endLocation', field_value: `${endLocation.latitude},${endLocation.longitude}` },
+          { field_name: 'routeType', field_value: routeType },
+          { field_name: 'transportType', field_value: transportType },
+          { field_name: 'passengerCount', field_value: passengerCount.toString() },
+          { field_name: 'fuelType', field_value: transportType === 'car' ? fuelType : null },
+          { field_name: 'distance', field_value: calculateDistance(startLocation, endLocation).toString() }
+
+        ],
+        note: `Viaggio da ${startLocation.latitude},${startLocation.longitude} a ${endLocation.latitude},${endLocation.longitude}`
       };
 
-      // Chiamata per creare l'Activity
-      const activityResponse = await fetch(`${SERVER}/api/activities`, {
+      const activityResponse = await fetch(`${SERVER}/activities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token || ''}`,
         },
         body: JSON.stringify(activityData),
       });
@@ -96,37 +134,8 @@ export const TransportComponent = () => {
       }
 
       const activityResult = await activityResponse.json();
-
-      const transportActivityData = {
-        activity: {
-          id: activityResult.id
-        },
-        transportMode: transportType,
-        departurePoint: `${startLocation.latitude},${startLocation.longitude}`,
-        arrivalPoint: `${endLocation.latitude},${endLocation.longitude}`,
-        distance: calculateDistance(startLocation, endLocation),
-        travelDate: new Date().toISOString(),
-        passengerCount: passengerCount,
-        fuelType: transportType === 'car' ? fuelType : null
-      };
-
-      const response = await fetch(`${SERVER}/api/transport-activities/new`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(transportActivityData),
-      });
-
-      const data = await response.json();
-      
-      if (response.ok) {
-        Alert.alert("Successo", "Percorso registrato con successo!");
-        setStartLocation(null);
-        setEndLocation(null);
-      } else {
-        throw new Error(data.message || 'Errore nel salvataggio del percorso');
-      }
+      Alert.alert("Successo", "Percorso salvato con successo!");
+      console.log("Attività salvata:", activityResult);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
       Alert.alert("Errore", "Impossibile salvare il percorso: " + errorMessage);
@@ -184,7 +193,7 @@ export const TransportComponent = () => {
             style={styles.dropdown}
             dropDownContainerStyle={styles.dropdownList}
             placeholder="Seleziona un tipo di trasporto"
-            listMode="MODAL" // Changed to modal mode
+            listMode="MODAL"
             modalProps={{
               animationType: "fade"
             }}
@@ -203,13 +212,13 @@ export const TransportComponent = () => {
               setValue={setFuelType}
               style={styles.dropdown}
               dropDownContainerStyle={styles.dropdownList}
-              listMode="MODAL" // Changed to modal mode
+              listMode="MODAL"
               modalProps={{
                 animationType: "fade"
               }}
               modalContentContainerStyle={styles.modalContent}
             />
-            
+
             <Text style={styles.fieldLabel}>Numero passeggeri:</Text>
             <TextInput
               style={styles.input}

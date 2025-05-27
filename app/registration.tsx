@@ -31,11 +31,11 @@ interface RegFormState {
 
 const RegisterScreen = () => {
   const [formData, setFormData] = useState<RegFormState>({
-    firstName: 'Maxim',
-    lastName: 'Popovschii',
-    email: 'maxpopovschii@gmail.com',
-    passwordHash: 'Automotodrom3033!',
-    passwordConfirm: 'Automotodrom3033!',
+    firstName: '',
+    lastName: '',
+    email: '',
+    passwordHash: '',
+    passwordConfirm: '',
   });
   const [otp, setOtp] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -43,197 +43,248 @@ const RegisterScreen = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const [loading, setLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
 
   const handleChange = (name: keyof RegFormState, value: string) => {
     setFormData({
       ...formData,
       [name]: value,
     });
+    setError('');
   };
 
-const handleSubmit = async () => {
-  const { firstName, lastName, email, passwordHash, passwordConfirm } = formData;
-  if (!firstName || !lastName || !email || !passwordHash || !passwordConfirm) {
-    setError('All fields are required.');
-    return;
-  }
-  if (passwordHash !== passwordConfirm) {
-    setError('Passwords do not match.');
-    return;
-  }
-  try {
-    const response = await fetch(`${SERVER}/email/send-otp?email=${email}`, {
-      method: 'POST',
-    });
-    if (response.ok) {
-      setModalVisible(true);
-    } else {
-      Alert.alert('Errore', 'Invio OTP fallito.');
+  const isEmailValid = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const isPasswordStrong = (password: string) =>
+    password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password);
+
+  const isFormValid =
+    formData.firstName &&
+    formData.lastName &&
+    isEmailValid(formData.email) &&
+    isPasswordStrong(formData.passwordHash) &&
+    formData.passwordHash === formData.passwordConfirm;
+
+  const handleSubmit = async () => {
+    const { firstName, lastName, email, passwordHash, passwordConfirm } = formData;
+    if (!firstName || !lastName || !email || !passwordHash || !passwordConfirm) {
+      setError('Tutti i campi sono obbligatori.');
+      return;
     }
-  } catch (error) {
-    Alert.alert('Errore', 'Si è verificato un problema.');
-  }
-};
-
-const verifyOtp = async () => {
-  try {
-    const otpResponse = await fetch(`${SERVER}/auth/verify-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: formData.email, otp }),
-    });
-
-    if (!otpResponse.ok) {
-      const errorText = await otpResponse.text();
-      throw new Error(errorText);
+    if (!isEmailValid(email)) {
+      setError('Inserisci una email valida.');
+      return;
     }
-    const registerResponse = await fetch(`${SERVER}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: formData.firstName,
-        surname: formData.lastName,
-        email: formData.email,
-        password: formData.passwordHash,
-      }),
-    });
-
-    if (!registerResponse.ok) {
-      const errorText = await registerResponse.text();
-      throw new Error(`OTP valido, ma errore registrazione: ${errorText}`);
+    if (!isPasswordStrong(passwordHash)) {
+      setError('La password deve avere almeno 8 caratteri, una maiuscola e un numero.');
+      return;
     }
+    if (passwordHash !== passwordConfirm) {
+      setError('Le password non coincidono.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`${SERVER}/email/send-otp?email=${email}`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        setModalVisible(true);
+      } else {
+        Alert.alert('Errore', 'Invio OTP fallito.');
+      }
+    } catch (error) {
+      console.error('Errore durante l\'invio OTP:', error);
+      Alert.alert('Errore', 'Si è verificato un problema.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    Alert.alert('Successo', 'Registrazione completata!');
-    setModalVisible(false);
-    setTimeout(() => router.navigate('/login'), 2000);
+  const verifyOtp = async () => {
+    if (!otp || otp.length !== 6) {
+      setError('Inserisci un codice OTP valido.');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const otpResponse = await fetch(`${SERVER}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, otp }),
+      });
 
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Errore durante la registrazione';
-    Alert.alert('Errore', message);
-  }
-};
+      if (!otpResponse.ok) {
+        const errorText = await otpResponse.text();
+        throw new Error(errorText);
+      }
+      const registerResponse = await fetch(`${SERVER}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.firstName,
+          surname: formData.lastName,
+          email: formData.email,
+          password: formData.passwordHash,
+        }),
+      });
 
+      if (!registerResponse.ok) {
+        const errorText = await registerResponse.text();
+        throw new Error(`OTP valido, ma errore registrazione: ${errorText}`);
+      }
 
+      Alert.alert('Successo', 'Registrazione completata!');
+      setModalVisible(false);
+      setTimeout(() => router.navigate('/login'), 2000);
 
-  
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Errore durante la registrazione';
+      Alert.alert('Errore', message);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
 
   return (
     <LinearGradient
-      colors={['#4CAF50', '#2196F3']} 
+      colors={['#4CAF50', '#2196F3']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.inner}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <Animated.View 
-            style={[
-              styles.formContainer,
-            ]}
-          >
+          <Animated.View style={styles.formContainer}>
             <View style={styles.logoContainer}>
               <MaterialCommunityIcons name="leaf" size={60} color="#fff" />
               <Text style={styles.header}>Benvenuto</Text>
               <Text style={styles.subHeader}>Crea il tuo account</Text>
             </View>
 
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons name="account-outline" size={24} color="#fff" style={styles.inputIcon} />
-              <TextInput 
-                placeholder="Nome" 
-                style={styles.input} 
-                value={formData.firstName} 
+              <TextInput
+                placeholder="Nome"
+                style={styles.input}
+                value={formData.firstName}
                 onChangeText={(text) => handleChange('firstName', text)}
                 placeholderTextColor="rgba(255,255,255,0.7)"
+                accessibilityLabel="Nome"
+                autoCapitalize="words"
               />
             </View>
 
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons name="account-outline" size={24} color="#fff" style={styles.inputIcon} />
-              <TextInput 
-                placeholder="Cognome" 
-                style={styles.input} 
-                value={formData.lastName} 
+              <TextInput
+                placeholder="Cognome"
+                style={styles.input}
+                value={formData.lastName}
                 onChangeText={(text) => handleChange('lastName', text)}
                 placeholderTextColor="rgba(255,255,255,0.7)"
+                accessibilityLabel="Cognome"
+                autoCapitalize="words"
               />
             </View>
 
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons name="email-outline" size={24} color="#fff" style={styles.inputIcon} />
-              <TextInput 
-                placeholder="Email" 
-                style={styles.input} 
-                keyboardType="email-address" 
+              <TextInput
+                placeholder="Email"
+                style={styles.input}
+                keyboardType="email-address"
                 autoCapitalize="none"
-                value={formData.email} 
+                value={formData.email}
                 onChangeText={(text) => handleChange('email', text)}
                 placeholderTextColor="rgba(255,255,255,0.7)"
+                accessibilityLabel="Email"
+                autoComplete="email"
+                textContentType="emailAddress"
               />
             </View>
 
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons name="lock-outline" size={24} color="#fff" style={styles.inputIcon} />
-              <TextInput 
-                placeholder="Password" 
-                style={[styles.input, { flex: 1 }]} 
+              <TextInput
+                placeholder="Password"
+                style={[styles.input, { flex: 1 }]}
                 secureTextEntry={!showPassword}
-                value={formData.passwordHash} 
+                value={formData.passwordHash}
                 onChangeText={(text) => handleChange('passwordHash', text)}
                 placeholderTextColor="rgba(255,255,255,0.7)"
+                accessibilityLabel="Password"
+                autoCapitalize="none"
+                autoComplete="password"
+                textContentType="newPassword"
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.passwordToggle}
+                accessibilityLabel={showPassword ? "Nascondi password" : "Mostra password"}
+                accessibilityRole="button"
               >
-                <MaterialCommunityIcons 
-                  name={showPassword ? "eye-off" : "eye"} 
-                  size={24} 
-                  color="#fff" 
+                <MaterialCommunityIcons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color="#fff"
                 />
               </TouchableOpacity>
             </View>
 
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons name="lock-outline" size={24} color="#fff" style={styles.inputIcon} />
-              <TextInput 
-                placeholder="Conferma Password" 
-                style={[styles.input, { flex: 1 }]} 
+              <TextInput
+                placeholder="Conferma Password"
+                style={[styles.input, { flex: 1 }]}
                 secureTextEntry={!showConfirmPassword}
-                value={formData.passwordConfirm} 
+                value={formData.passwordConfirm}
                 onChangeText={(text) => handleChange('passwordConfirm', text)}
                 placeholderTextColor="rgba(255,255,255,0.7)"
+                accessibilityLabel="Conferma Password"
+                autoCapitalize="none"
+                autoComplete="password"
+                textContentType="password"
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 style={styles.passwordToggle}
+                accessibilityLabel={showConfirmPassword ? "Nascondi password" : "Mostra password"}
+                accessibilityRole="button"
               >
-                <MaterialCommunityIcons 
-                  name={showConfirmPassword ? "eye-off" : "eye"} 
-                  size={24} 
-                  color="#fff" 
+                <MaterialCommunityIcons
+                  name={showConfirmPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color="#fff"
                 />
               </TouchableOpacity>
             </View>
 
-            <Button 
-              mode="contained" 
-              onPress={handleSubmit} 
+            <Button
+              mode="contained"
+              onPress={handleSubmit}
               style={styles.button}
               contentStyle={styles.buttonContent}
+              disabled={!isFormValid || loading}
+              loading={loading}
+              accessibilityLabel="Registrati"
+              accessibilityRole="button"
             >
               Registrati
             </Button>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => router.navigate('/login')}
               style={styles.loginLinkContainer}
+              accessibilityRole="button"
+              accessibilityLabel="Vai al login"
             >
               <Text style={styles.loginLink}>
                 Hai già un account? <Text style={styles.loginLinkBold}>Accedi</Text>
@@ -242,31 +293,33 @@ const verifyOtp = async () => {
           </Animated.View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-      <Modal 
-        visible={modalVisible} 
-        transparent 
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalHeader}>Inserisci il Codice OTP</Text>
             <Text style={styles.otpInfo}>
               Abbiamo inviato un codice di verifica al tuo indirizzo email.
-              Controlla la tua casella di posta e inserisci il codice di 6 cifre 
+              Controlla la tua casella di posta e inserisci il codice di 6 cifre
               qui sotto per completare la registrazione.
             </Text>
-            <TextInput 
-              style={styles.textInput} 
-              placeholder="Inserisci OTP" 
-              keyboardType="numeric" 
-              value={otp} 
+            <TextInput
+              style={styles.textInput}
+              placeholder="Inserisci OTP"
+              keyboardType="numeric"
+              value={otp}
               onChangeText={setOtp}
               maxLength={6}
+              accessibilityLabel="Codice OTP"
             />
             <View style={styles.buttonContainer}>
               <Button mode="outlined" onPress={() => setModalVisible(false)} style={styles.backButton}>
                 Indietro
               </Button>
-              <Button mode="contained" onPress={verifyOtp} style={styles.buttonVerify}>
+              <Button mode="contained" onPress={verifyOtp} style={styles.buttonVerify} loading={otpLoading}>
                 Verifica
               </Button>
             </View>

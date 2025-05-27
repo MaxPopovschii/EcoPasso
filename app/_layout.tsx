@@ -6,41 +6,44 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import 'react-native-reanimated';
 
-// Prevent splash screen from auto-hiding
+// Mantieni la splash screen finché la UI non è pronta
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
+    // Nascondi la splash screen dopo il montaggio
     SplashScreen.hideAsync();
   }, []);
 
+  const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+  const backgroundColor = colorScheme === 'dark' ? '#1a1a1a' : '#f4f6fa';
+
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <View style={{ flex: 1 }}>
-          <Stack screenOptions={{
-            headerStyle: {
-              backgroundColor: colorScheme === 'dark' ? '#1a1a1a' : '#4CAF50',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontSize: 18,
-            },
-            headerShadowVisible: false,
-            animation: 'slide_from_right',
-          }}>
-            <Stack.Screen
-              name="(tabs)"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="index"
-              options={{ headerShown: false }}
-            />
+      <ThemeProvider value={theme}>
+        <View
+          style={{ flex: 1, backgroundColor }}
+          accessible
+          accessibilityLabel="EcoPasso Main Container"
+        >
+          <Stack
+            screenOptions={{
+              headerStyle: {
+                backgroundColor: colorScheme === 'dark' ? '#1a1a1a' : '#4CAF50',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontSize: 18,
+              },
+              headerShadowVisible: false,
+              animation: 'slide_from_right',
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen
               name="login"
               options={{
