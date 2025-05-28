@@ -9,6 +9,7 @@ const ActivityTypes = [
     {key : 8, value : 'Luce'},
     {key : 9, value : 'Acqua'},
     {key : 10, value : 'Riciclo'},
+    {key : 11, value :'Auto'}
 ]
 
 export default ActivityTypes;

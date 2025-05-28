@@ -3,7 +3,7 @@ import ActivityTypes from '@/constants/ActivityTypes';
 import SERVER from '@/constants/Api';
 import { useAuthContext } from '@/utils/authContext';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import React, { useState } from 'react';
 import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -24,12 +24,12 @@ const FoodComponent = () => {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const onDateChange = (event, selectedDate) => {
-    setShowDatePicker(Platform.OS === 'ios');
+  const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
+  const handleConfirm = (selectedDate: Date) => {
+    setShowDatePicker(false);
     if (selectedDate) setDate(selectedDate);
   };
-
-  const formatDate = (date) => date.toISOString().split('T')[0];
 
   const handleSubmit = async () => {
     if (!foodType || !dishName || !quantity || isNaN(parseFloat(quantity)) || parseFloat(quantity) <= 0 || !meal) {
@@ -43,7 +43,7 @@ const FoodComponent = () => {
       return;
     }
 
-    const payload : ActivityDataInterface = {
+    const payload: ActivityDataInterface = {
       userEmail: user?.email,
       activityTypeId: activityType.key,
       note: `Hai mangiato ${dishName} (${quantity}g) a ${meal}`,
@@ -153,23 +153,23 @@ const FoodComponent = () => {
         >
           <Text style={styles.dateBtnText}>{formatDate(date)}</Text>
         </TouchableOpacity>
-        {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={onDateChange}
-            maximumDate={new Date()}
-          />
-        )}
+        <DateTimePickerModal
+          isVisible={showDatePicker}
+          mode="date"
+          onConfirm={handleConfirm}
+          onCancel={() => setShowDatePicker(false)}
+          maximumDate={new Date()}
+          locale="it-IT"
+          is24Hour={true}
+        />
       </View>
 
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit} accessibilityRole="button" accessibilityLabel="Salva pasto">
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit}>
           <MaterialIcons name="check-circle" size={22} color="#fff" />
           <Text style={styles.saveBtnText}>Salva</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.resetBtn} onPress={handleReset} accessibilityRole="button" accessibilityLabel="Reset campi">
+        <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
           <MaterialIcons name="refresh" size={22} color="#4CAF50" />
           <Text style={styles.resetBtnText}>Reset</Text>
         </TouchableOpacity>
@@ -289,5 +289,3 @@ const styles = StyleSheet.create({
 });
 
 export default FoodComponent;
-
-
