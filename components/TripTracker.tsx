@@ -1,12 +1,12 @@
 import SERVER from '@/constants/Api';
-import { useAuthContext } from '@/utils/authContext';
+import { useAuthContext } from '@/contexts/authContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   AppState,

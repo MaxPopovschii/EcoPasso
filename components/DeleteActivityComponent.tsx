@@ -1,6 +1,6 @@
 import ActivityTypes from '@/constants/ActivityTypes';
 import SERVER from '@/constants/Api';
-import { useAuthContext } from '@/utils/authContext';
+import { useAuthContext } from '@/contexts/authContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';

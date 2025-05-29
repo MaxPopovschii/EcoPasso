@@ -1,5 +1,5 @@
+import ActivityTypes from '../constants/ActivityTypes';
 import ActivitiesData from './ActivitiesData';
-import ActivityTypes from './ActivityTypes';
 
 type ActivityTypeId = typeof ActivityTypes[number]['key'];
 

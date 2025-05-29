@@ -1,7 +1,7 @@
-import ActivityDataInterface from '@/constants/ActivityDataInterface';
 import ActivityTypes from '@/constants/ActivityTypes';
 import SERVER from '@/constants/Api';
-import { useAuthContext } from '@/utils/authContext';
+import { useAuthContext } from '@/contexts/authContext';
+import ActivityDataInterface from '@/types/ActivityDataInterface';
 import React, { useState } from 'react';
 import { Alert, Button, StyleSheet, Text, TextInput, View } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';

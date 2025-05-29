@@ -1,7 +1,11 @@
+import { GoalSelectionModal } from '@/components/modals/GoalSelectionModal';
 import CustomModal from '@/components/modals/ReusableModal';
 import SERVER from '@/constants/Api';
+import { useAuthContext } from '@/contexts/authContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useAuthContext } from '@/utils/authContext';
+import { useBadgeTracker } from '@/hooks/useBadgeTracker';
+import { Badge } from '@/types/Badge';
+import { Goal } from '@/types/Goal';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,55 +23,74 @@ import {
   View
 } from 'react-native';
 
-interface FormState {
-  firstName: string;
-  lastName: string;
-  email: string;
-  currentPassword?: string;
-  newPassword?: string;
-  confirmPassword?: string;
-}
 
 export default function ProfileScreen() {
   const { user, token } = useAuthContext();
   const { logout } = useAuth();
-  const [formData, setFormData] = useState<FormState>({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    email: user?.email || ''
-  });
   const [modalVisible, setModalVisible] = useState(false);
   const [avatar, setAvatar] = useState<string | undefined>(user?.avatar);
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [activeTab, setActiveTab] = useState<'badges' | 'goals'>('badges');
+  const [showGoalModal, setShowGoalModal] = useState(false);
 
-  // Carica i dati utente all'avvio
-  useEffect(() => {
-    fetchUserData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  // Form state for profile editing
+  const [formData, setFormData] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  // Fetch badges and goals
   const fetchUserData = async () => {
+    if (!user?.email || !token) return;
+    
     try {
-      const response = await fetch(`${SERVER}/api/users/${user?.email}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
-      if (!response.ok) throw new Error('Errore nel caricamento dei dati');
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const data = await response.json();
-        setFormData(data);
-        if (data.avatar) setAvatar(data.avatar);
-      } else {
-        const text = await response.text();
-        console.warn('Risposta non JSON:', text);
+      const [badgesRes, goalsRes] = await Promise.all([
+        fetch(`${SERVER}/api/users/${user.email}/badges`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${SERVER}/api/users/${user.email}/goals`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      if (!badgesRes.ok || !goalsRes.ok) {
+        throw new Error('Errore nel caricamento dei dati');
       }
+
+      const [badgesData, goalsData] = await Promise.all([
+        badgesRes.json(),
+        goalsRes.json()
+      ]);
+
+      setBadges(badgesData);
+      setGoals(goalsData);
     } catch (error) {
-      console.error('Errore nel caricamento dei dati utente:', error);
-      Alert.alert('Errore', 'Impossibile caricare i dati utente');
+      console.error('Errore nel caricamento dei dati del profilo:', error);
+      Alert.alert(
+        'Errore',
+        'Impossibile caricare i dati del profilo. Riprova più tardi.'
+      );
     }
   };
+
+  useEffect(() => {
+    fetchUserData();
+  }, [user?.email, token]);
+
+  const { progress } = useBadgeTracker(token, user?.email);
+
+  useEffect(() => {
+    if (progress.currentStreak === 5) {
+      Alert.alert(
+        'Nuovo Badge Sbloccato!',
+        'Hai ottenuto il badge "Eco Rookie" per aver effettuato l\'accesso per 5 giorni consecutivi!',
+        [{ text: 'OK', onPress: () => fetchUserData() }]
+      );
+    }
+  }, [progress.currentStreak]);
 
   const pickImage = async () => {
     try {
@@ -154,22 +177,15 @@ export default function ProfileScreen() {
   const handleUpdate = async () => {
     try {
       // Validazione password
-      if (formData.newPassword || formData.currentPassword || formData.confirmPassword) {
+      if (formData.newPassword) {
         if (!formData.currentPassword) {
-          Alert.alert('Errore', 'Inserisci la password attuale');
-          return;
-        }
-        if (!formData.newPassword) {
-          Alert.alert('Errore', 'Inserisci la nuova password');
-          return;
+          throw new Error('Inserisci la password attuale');
         }
         if (formData.newPassword !== formData.confirmPassword) {
-          Alert.alert('Errore', 'Le password non coincidono');
-          return;
+          throw new Error('Le password non coincidono');
         }
         if (formData.newPassword.length < 6) {
-          Alert.alert('Errore', 'La password deve essere di almeno 6 caratteri');
-          return;
+          throw new Error('La password deve essere di almeno 6 caratteri');
         }
       }
 
@@ -180,29 +196,26 @@ export default function ProfileScreen() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
           currentPassword: formData.currentPassword,
           newPassword: formData.newPassword,
           avatar
         }),
       });
 
-      if (!response.ok) throw new Error('Errore nell\'aggiornamento');
-
-      Alert.alert('Successo', 'Profilo aggiornato con successo');
+      if (!response.ok) throw new Error('Errore nell\'aggiornamento del profilo');
       setModalVisible(false);
-
-      // Pulisci i campi password
       setFormData(prev => ({
         ...prev,
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       }));
+      
+      Alert.alert('Successo', 'Profilo aggiornato con successo');
     } catch (error) {
-      console.error('Errore durante l\'aggiornamento del profilo:', error);
-      Alert.alert('Errore', 'Impossibile aggiornare il profilo');
+      Alert.alert('Errore', error instanceof Error ? error.message : 'Errore imprevisto');
     }
   };
 
@@ -212,13 +225,116 @@ export default function ProfileScreen() {
     router.back();
   };
 
+  const handleSelectGoal = async (goalId: number) => {
+    try {
+      const response = await fetch(`${SERVER}/api/goals`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userEmail: user?.email,
+          goalId,
+          startDate: new Date().toISOString(),
+          status: 'active',
+          currentValue: 0
+        }),
+      });
+
+      if (!response.ok) throw new Error('Errore nella creazione dell\'obiettivo');
+
+      await fetchUserData(); // Ricarica i goal dopo l'aggiunta
+      setShowGoalModal(false);
+      Alert.alert('Successo', 'Nuovo obiettivo aggiunto! Inizia a tracciare le tue attività.');
+    } catch (error) {
+      console.error('Errore durante l\'aggiunta dell\'obiettivo:', error);
+      Alert.alert('Errore', 'Impossibile aggiungere l\'obiettivo');
+    }
+  };
+
+  const renderBadges = () => (
+    <View style={styles.badgesContainer}>
+      {badges.map((badge) => (
+        <TouchableOpacity 
+          key={badge.id} 
+          style={[styles.badge, !badge.achieved && styles.badgeLockedOverlay]}
+        >
+          <MaterialIcons 
+            name={badge.icon as any} 
+            size={32} 
+            color={badge.achieved ? '#4CAF50' : '#bdbdbd'} 
+          />
+          <Text style={styles.badgeName}>{badge.name}</Text>
+          {badge.progress && (
+            <Text style={styles.badgeProgress}>{badge.progress}%</Text>
+          )}
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const renderGoals = () => (
+    <View style={styles.goalsContainer}>
+      <TouchableOpacity 
+        style={styles.addGoalButton}
+        onPress={() => setShowGoalModal(true)}
+      >
+        <MaterialIcons name="add-circle" size={24} color="#fff" />
+        <Text style={styles.addGoalButtonText}>Nuovo Obiettivo</Text>
+      </TouchableOpacity>
+      
+      {goals.map((goal) => (
+        <View key={goal.id} style={styles.goalCard}>
+          <Text style={styles.goalTitle}>{goal.name}</Text>
+          <Text style={styles.goalDescription}>{goal.description}</Text>
+          <View style={styles.progressBar}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { width: `${(goal.currentValue / goal.targetValue) * 100}%` }
+              ]} 
+            />
+          </View>
+          <Text style={styles.goalProgress}>
+            Progresso: {goal.currentValue} / {goal.targetValue} {goal.measureUnit}
+          </Text>
+          {goal.endDate && (
+            <Text style={styles.goalDeadline}>
+              Scadenza: {new Date(goal.endDate).toLocaleDateString()}
+            </Text>
+          )}
+          {(() => {
+            let statusLabel = '';
+            if (goal.status === 'active') {
+              statusLabel = 'In corso';
+            } else if (goal.status === 'completed') {
+              statusLabel = 'Completato';
+            } else {
+              statusLabel = 'Non riuscito';
+            }
+            return (
+              <Text style={styles.goalStatus}>
+                Stato: {statusLabel}
+              </Text>
+            );
+          })()}
+        </View>
+      ))}
+
+      <GoalSelectionModal
+        visible={showGoalModal}
+        onClose={() => setShowGoalModal(false)}
+        onSelectGoal={handleSelectGoal}
+      />
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
         colors={['#4CAF50', '#2196F3']}
-        style={styles.mainGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
+        style={styles.container}
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
@@ -231,29 +347,45 @@ export default function ProfileScreen() {
               <MaterialIcons name="camera-alt" size={16} color="#fff" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.userEmail}>{formData.email}</Text>
+          <Text style={styles.userName}>{user?.firstName} {user?.lastName}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
         </View>
 
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
-        >
-          <TouchableOpacity
-            style={styles.menuItem}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'badges' && styles.activeTab]}
+            onPress={() => setActiveTab('badges')}
+          >
+            <Text style={styles.tabText}>Badge</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'goals' && styles.activeTab]}
+            onPress={() => setActiveTab('goals')}
+          >
+            <Text style={styles.tabText}>Obiettivi</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.content}>
+          {activeTab === 'badges' ? renderBadges() : renderGoals()}
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity 
+            style={styles.editButton}
             onPress={() => setModalVisible(true)}
           >
-            <MaterialIcons name="edit" size={24} color="#4CAF50" />
-            <Text>Modifica Profilo</Text>
+            <MaterialIcons name="edit" size={24} color="#fff" />
+            <Text style={styles.buttonText}>Modifica Profilo</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
+          <TouchableOpacity 
+            style={styles.logoutButton}
             onPress={handleLogout}
           >
-            <MaterialIcons name="logout" size={24} color="#ff5252" />
-            <Text style={{ color: '#ff5252' }}>Logout</Text>
+            <MaterialIcons name="logout" size={24} color="#fff" />
+            <Text style={styles.buttonText}>Logout</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
 
         <CustomModal
           visible={modalVisible}
@@ -340,7 +472,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#4CAF50',
   },
-  mainGradient: {
+  container: {
     flex: 1,
   },
   header: {
@@ -432,6 +564,143 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  tabContainer: {
+    flexDirection: 'row',
+    marginVertical: 16,
+    paddingHorizontal: 16,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#fff',
+  },
+  tabText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  badgesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    padding: 16,
+  },
+  badge: {
+    width: '30%',
+    aspectRatio: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  badgeLockedOverlay: {
+    opacity: 0.5,
+  },
+  badgeName: {
+    marginTop: 8,
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#333',
+  },
+  badgeProgress: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 4,
+  },
+  goalsContainer: {
+    padding: 16,
+  },
+  goalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  goalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  goalDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginVertical: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+  },
+  goalProgress: {
+    fontSize: 14,
+    color: '#666',
+  },
+  goalDeadline: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+  goalStatus: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#333',
+    marginTop: 4,
+  },
+  footer: {
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  editButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  logoutButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ff5252',
+    padding: 12,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  buttonText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+  },
   modalContent: {
     padding: 24,
     borderTopLeftRadius: 20,
@@ -484,12 +753,6 @@ const styles = StyleSheet.create({
   cancelButton: {
     backgroundColor: '#ff5252',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
   divider: {
     height: 1,
     backgroundColor: '#e9ecef',
@@ -500,5 +763,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 16,
+  },
+  addGoalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  addGoalButtonText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

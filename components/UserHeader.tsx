@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
-import { useAuthContext } from '@/utils/authContext'; // Presuming you have an auth context
-import { SafeAreaView } from 'react-native-safe-area-context'; // Import SafeAreaView
 import { Colors } from '@/constants/Colors';
+import { useAuthContext } from '@/contexts/authContext'; // Presuming you have an auth context
+import React from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context'; // Import SafeAreaView
 
 const UserHeader: React.FC = () => {
   const { user } = useAuthContext(); // Fetch user from context

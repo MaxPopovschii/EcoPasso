@@ -1,5 +1,5 @@
 import SERVER from '@/constants/Api';
-import { useAuthContext } from '@/utils/authContext';
+import { useAuthContext } from '@/contexts/authContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, View } from 'react-native';

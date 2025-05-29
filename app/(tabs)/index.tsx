@@ -1,5 +1,5 @@
 import HomePageComponent from '@/components/HomePageComponent';
-import { useAuthContext } from '@/utils/authContext';
+import { useAuthContext } from '@/contexts/authContext';
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 

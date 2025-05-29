@@ -1,8 +1,8 @@
 
-import ActivityDataInterface from '@/constants/ActivityDataInterface';
 import ActivityTypes from '@/constants/ActivityTypes';
 import SERVER from '@/constants/Api';
-import { useAuthContext } from '@/utils/authContext';
+import { useAuthContext } from '@/contexts/authContext';
+import ActivityDataInterface from '@/types/ActivityDataInterface';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';

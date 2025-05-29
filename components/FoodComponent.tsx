@@ -1,12 +1,12 @@
-import ActivityDataInterface from '@/constants/ActivityDataInterface';
 import ActivityTypes from '@/constants/ActivityTypes';
 import SERVER from '@/constants/Api';
-import { useAuthContext } from '@/utils/authContext';
+import { useAuthContext } from '@/contexts/authContext';
+import ActivityDataInterface from '@/types/ActivityDataInterface';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import React, { useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 const FoodComponent = () => {
   const { user, token } = useAuthContext();
