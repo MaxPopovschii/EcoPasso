@@ -1,6 +1,6 @@
 export interface Goal {
   id: number;
-  name: string;           // invece di title
+  title: string;           // invece di title
   description: string;    // aggiunto campo descrizione
   targetValue: number;    // invece di target
   currentValue: number;   // invece di current

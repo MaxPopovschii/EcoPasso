@@ -34,7 +34,8 @@ export default function ProfileScreen() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [activeTab, setActiveTab] = useState<'badges' | 'goals'>('badges');
   const [showGoalModal, setShowGoalModal] = useState(false);
-  const __DEV__ = false; // Set to true if you want to show the test badge in development mode
+  const [goal, setGoal] = useState<Goal>(null);
+  const __DEV__ = true; // Set to true if you want to show the test badge in development mode
   // Form state for profile editing
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -44,15 +45,17 @@ export default function ProfileScreen() {
     confirmPassword: '',
   });
   // Fetch badges and goals
+  /*
   const fetchUserData = async () => {
     if (!user?.email || !token) return;
     
     try {
       const [badgesRes, goalsRes] = await Promise.all([
-        fetch(`${SERVER}/api/users/${user.email}/badges`, {
+        fetch(`${SERVER}/badges/user/${user.email}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${SERVER}/api/users/${user.email}/goals`, {
+        
+        fetch(`${SERVER}/goals/progress/${user.email}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -92,7 +95,7 @@ export default function ProfileScreen() {
       );
     }
   }, [progress.currentStreak]);
-
+*/
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -226,26 +229,31 @@ export default function ProfileScreen() {
     router.back();
   };
 
-  const handleSelectGoal = async (goalId: number) => {
+  const handleSelectGoal = async (goal: any) => {
     try {
-      const response = await fetch(`${SERVER}/api/goals`, {
+      setGoal({
+        id: goal.id,
+        title: goal.title,
+        description: goal.description,
+        targetValue: goal.targetValue,
+        currentValue: goal.currentValue,
+        measureUnit: goal.measureUnite,
+        startDate: goal.startDate,
+        status: goal.status,
+        type: goal.type
+      })
+      const response = await fetch(`${SERVER}/goals/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          userEmail: user?.email,
-          goalId,
-          startDate: new Date().toISOString(),
-          status: 'active',
-          currentValue: 0
-        }),
+        body: JSON.stringify({goal}),
       });
 
       if (!response.ok) throw new Error('Errore nella creazione dell\'obiettivo');
 
-      await fetchUserData(); // Ricarica i goal dopo l'aggiunta
+      //await fetchUserData(); // Ricarica i goal dopo l'aggiunta
       setShowGoalModal(false);
       Alert.alert('Successo', 'Nuovo obiettivo aggiunto! Inizia a tracciare le tue attività.');
     } catch (error) {
@@ -287,7 +295,7 @@ export default function ProfileScreen() {
       
       {goals.map((goal) => (
         <View key={goal.id} style={styles.goalCard}>
-          <Text style={styles.goalTitle}>{goal.name}</Text>
+          <Text style={styles.goalTitle}>{goal.title}</Text>
           <Text style={styles.goalDescription}>{goal.description}</Text>
           <View style={styles.progressBar}>
             <View 

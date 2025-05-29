@@ -2,7 +2,7 @@ import SERVER from '@/constants/Api';
 import { useAuthContext } from '@/contexts/authContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Image, ImageSourcePropType, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BarChart, LineChart } from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get('window').width;
@@ -36,7 +36,7 @@ const HomePageComponent: React.FC<HomePageProps> = ({ email, avatar }) => {
     const fetchStatistics = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${SERVER}/statistics/${email}`, {
+        const response = await fetch(`${SERVER}/footprint/${email}/stats`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json',
@@ -75,7 +75,7 @@ const HomePageComponent: React.FC<HomePageProps> = ({ email, avatar }) => {
       <LinearGradient colors={['#4CAF50', '#2196F3']} style={styles.gradientBackground}>
         <View style={styles.header}>
           <Image
-            source={avatar ? { uri: avatar } : require('@/assets/avatar-placeholder.png')}
+            source={avatar as ImageSourcePropType  } 
             style={styles.avatar}
           />
           <Text style={styles.userName}>{email}</Text>

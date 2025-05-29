@@ -25,7 +25,7 @@ const AVAILABLE_GOALS = [
 interface GoalSelectionModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelectGoal: (goalId: number) => Promise<void>;
+  onSelectGoal: (goal: any) => Promise<void>;
 }
 
 export const GoalSelectionModal: React.FC<GoalSelectionModalProps> = ({
@@ -50,7 +50,7 @@ export const GoalSelectionModal: React.FC<GoalSelectionModalProps> = ({
             renderItem={({ item }) => (
               <TouchableOpacity 
                 style={styles.goalItem}
-                onPress={() => onSelectGoal(item.id)}
+                onPress={() => onSelectGoal(item)}
               >
                 <MaterialIcons name={item.icon as any} size={32} color="#4CAF50" />
                 <View style={styles.goalInfo}>

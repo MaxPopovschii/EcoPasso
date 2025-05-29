@@ -75,12 +75,6 @@ const BadgeUnlockModal: React.FC<BadgeUnlockModalProps> = ({
     >
       <View style={styles.container}>
         <View style={styles.content}>
-          <LottieView
-            source={require('@/assets/animations/confetti.json')}
-            autoPlay
-            loop={false}
-            style={styles.confetti}
-          />
           
           <Text style={styles.congratsText}>Congratulazioni!</Text>
           <Text style={styles.title}>Nuovo Badge Sbloccato!</Text>
@@ -97,16 +91,16 @@ const BadgeUnlockModal: React.FC<BadgeUnlockModalProps> = ({
             ]}
           >
             <View style={styles.badge}>
-              <Text style={styles.badgeEmoji}>{badge.icon}</Text>
+              <Text style={styles.badgeEmoji}>{badge?.icon}</Text>
             </View>
           </Animated.View>
           
-          <Text style={styles.badgeName}>{badge.name}</Text>
-          <Text style={styles.description}>{badge.description}</Text>
+          <Text style={styles.badgeName}>{badge?.name}</Text>
+          <Text style={styles.description}>{badge?.description}</Text>
           
           <View style={styles.categoryContainer}>
             <MaterialIcons name="category" size={16} color="#666" />
-            <Text style={styles.categoryText}>{badge.category}</Text>
+            <Text style={styles.categoryText}>{badge?.category}</Text>
           </View>
           
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>

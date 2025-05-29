@@ -25,8 +25,8 @@ interface LoginFormState {
 
 const LoginScreen: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormState>({
-    email: '',
-    password: '',
+    email: 'giocrew09@gmail.com',
+    password: 'Automotodrom3033!',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
