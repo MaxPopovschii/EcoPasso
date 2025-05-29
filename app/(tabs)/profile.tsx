@@ -1,5 +1,6 @@
 import { GoalSelectionModal } from '@/components/modals/GoalSelectionModal';
 import CustomModal from '@/components/modals/ReusableModal';
+import { TestBadgeComponent } from '@/components/TestBadgeComponent';
 import SERVER from '@/constants/Api';
 import { useAuthContext } from '@/contexts/authContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,7 +34,7 @@ export default function ProfileScreen() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [activeTab, setActiveTab] = useState<'badges' | 'goals'>('badges');
   const [showGoalModal, setShowGoalModal] = useState(false);
-
+  const __DEV__ = false; // Set to true if you want to show the test badge in development mode
   // Form state for profile editing
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -350,7 +351,7 @@ export default function ProfileScreen() {
           <Text style={styles.userName}>{user?.firstName} {user?.lastName}</Text>
           <Text style={styles.userEmail}>{user?.email}</Text>
         </View>
-
+        {__DEV__ && <TestBadgeComponent />}
         <View style={styles.tabContainer}>
           <TouchableOpacity 
             style={[styles.tab, activeTab === 'badges' && styles.activeTab]}
